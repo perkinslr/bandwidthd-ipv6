@@ -1,6 +1,7 @@
 Add struct for storing IPv6 information
 Make IP information use a linked list
 Add mac record support to sqlite and cdf
+Add support for multiple sensors using the python DBAPI
 
 OLD PROJECT TODO (will still get done)
 

@@ -1287,7 +1287,7 @@ void iptable_Transform(uint32_t Counter)
   {
   PyObject *pName, *pModule, *pFunc;
   PyObject *pArgs, *pValue;
-  pName = PyString_FromString("LookupMac");
+  pName = PyString_FromString("IPTableTransform");
   PyRun_SimpleString("import sys\nsys.path.append('.')\n");
   pModule = PyImport_Import(pName);
   Py_DECREF(pName);
@@ -1296,8 +1296,9 @@ void iptable_Transform(uint32_t Counter)
     pFunc = PyObject_GetAttrString(pModule, "main");
     if (pFunc && PyCallable_Check(pFunc))
       {
-      pArgs= PyTuple_New(1);
+      pArgs= PyTuple_New(2);
       PyTuple_SetItem(pArgs, 0, PyLong_FromUnsignedLong(Counter));
+      PyTuple_SetItem(pArgs, 1, PyString_FromString(config.sensor_name));
       pValue = PyObject_CallObject(pFunc, pArgs);
       Py_DECREF(pArgs);
       if (pValue != NULL)

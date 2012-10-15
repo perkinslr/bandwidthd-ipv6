@@ -1,9 +1,13 @@
 Only in .: .svn
 Only in .: BD.diff
-diff /home/perkins/Source/wrk/bandwidthd/CHANGELOG ./CHANGELOG
-0a1,17
+diff -r /home/perkins/Source/wrk/bandwidthd/CHANGELOG ./CHANGELOG
+0a1,21
 > 2.0.2.IPv6
 > 
+> Added second param to IPTableTransform.main for the name of the sensor in use.
+> Included sample IPTableTransform.py that outputs to a mysql DB
+> Changed name of python module from LookupMac to IPTableTransform
+> Fixed bug in pgsql.c where it was passing the mac address to HostIp2CharIp instead of the IP address (pgsql.c)
 > Fixed bug in pgsql.c where it was passing the wrong number of parameters to PQexecParams (pgsql.c)
 > Added support for excluding subnets. (conf.l conf.y)
 > Added mac record support for pgsql. (pgsql.c)
@@ -19,11 +23,12 @@ diff /home/perkins/Source/wrk/bandwidthd/CHANGELOG ./CHANGELOG
 > 
 > 2.0.1
 > 
-diff /home/perkins/Source/wrk/bandwidthd/INSTALL.Unix ./INSTALL.Unix
+diff -r /home/perkins/Source/wrk/bandwidthd/INSTALL.Unix ./INSTALL.Unix
 15a16,17
 > autoconf && autoheader
 > 
-diff /home/perkins/Source/wrk/bandwidthd/README ./README
+Only in .: IPTableTransform.py
+diff -r /home/perkins/Source/wrk/bandwidthd/README ./README
 0a1,8
 > Copyright Logan Perkins 2012 <perkins@alestan.publicvm.com>
 > 
@@ -33,24 +38,25 @@ diff /home/perkins/Source/wrk/bandwidthd/README ./README
 > team of developers.  The original readme file follows below, as the changes
 > thus far have been minor.  For the complete changes since the fork, see BD.diff
 > 
-diff /home/perkins/Source/wrk/bandwidthd/TODO ./TODO
-0a1,6
+diff -r /home/perkins/Source/wrk/bandwidthd/TODO ./TODO
+0a1,7
 > Add struct for storing IPv6 information
 > Make IP information use a linked list
 > Add mac record support to sqlite and cdf
+> Add support for multiple sensors using the python DBAPI
 > 
 > OLD PROJECT TODO (will still get done)
 > 
-16a23,25
+16a24,26
 > 
 > 
 > 
-diff /home/perkins/Source/wrk/bandwidthd/aclocal.m4 ./aclocal.m4
+diff -r /home/perkins/Source/wrk/bandwidthd/aclocal.m4 ./aclocal.m4
 8a9,11
 > 
 > 
 > 
-diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.c ./bandwidthd.c
+diff -r /home/perkins/Source/wrk/bandwidthd/bandwidthd.c ./bandwidthd.c
 16,21d15
 < // ****************************************************************************************
 < // ** Global Variables
@@ -689,13 +695,13 @@ diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.c ./bandwidthd.c
 < 
 1228d1281
 < 	
-1231a1285,1320
+1231a1285,1321
 > #ifdef HAVE_PYTHON
 > void iptable_Transform(uint32_t Counter)
 >   {
 >   PyObject *pName, *pModule, *pFunc;
 >   PyObject *pArgs, *pValue;
->   pName = PyString_FromString("LookupMac");
+>   pName = PyString_FromString("IPTableTransform");
 >   PyRun_SimpleString("import sys\nsys.path.append('.')\n");
 >   pModule = PyImport_Import(pName);
 >   Py_DECREF(pName);
@@ -704,8 +710,9 @@ diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.c ./bandwidthd.c
 >     pFunc = PyObject_GetAttrString(pModule, "main");
 >     if (pFunc && PyCallable_Check(pFunc))
 >       {
->       pArgs= PyTuple_New(1);
+>       pArgs= PyTuple_New(2);
 >       PyTuple_SetItem(pArgs, 0, PyLong_FromUnsignedLong(Counter));
+>       PyTuple_SetItem(pArgs, 1, PyString_FromString(config.sensor_name));
 >       pValue = PyObject_CallObject(pFunc, pArgs);
 >       Py_DECREF(pArgs);
 >       if (pValue != NULL)
@@ -726,7 +733,7 @@ diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.c ./bandwidthd.c
 >     }
 >   return;
 >   }
-1232a1322,1393
+1232a1323,1394
 > static PyObject *bandwidthd_get_entry_as_dict(PyObject *self, PyObject* args)
 > {
 >   uint32_t iCounter;
@@ -799,7 +806,7 @@ diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.c ./bandwidthd.c
 >   Py_InitModule("bandwidthd", bandwidthd_methods);
 > }
 > #endif //HAVE_PYTHON
-diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.h ./bandwidthd.h
+diff -r /home/perkins/Source/wrk/bandwidthd/bandwidthd.h ./bandwidthd.h
 4a5,8
 > #ifdef HAVE_PYTHON
 > #include <Python.h>
@@ -809,10 +816,6 @@ diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.h ./bandwidthd.h
 < #define IP_NUM 10000			// TODO: Do this dynamicly to save ram and/or scale bigger
 ---
 > #define IP_NUM 256*256			// TODO: Do this dynamicly to save ram and/or scale bigger
-86c90
-< #define INTERVAL1 200L		// 150 -60 (213 is the perfect interval?)
----
-> #define INTERVAL1 20L		// 150 -60 (213 is the perfect interval?)
 156a161
 > 	char *mac[1][20];
 174c179
@@ -890,7 +893,7 @@ diff /home/perkins/Source/wrk/bandwidthd/bandwidthd.h ./bandwidthd.h
 > void ResetTrafficCounters(void);
 > void CloseInterval(void);
 > */
-diff /home/perkins/Source/wrk/bandwidthd/conf.l ./conf.l
+diff -r /home/perkins/Source/wrk/bandwidthd/conf.l ./conf.l
 10,12c10,12
 < [ \t]+      			/* Ignore */;
 < \n						{ return TOKNEWLINE; }
@@ -948,7 +951,7 @@ diff /home/perkins/Source/wrk/bandwidthd/conf.l ./conf.l
 > management_url      { return TOKMANAGEMENTURL; }
 > extensions        { return TOKEXTENSIONS; }
 > .            { return TOKJUNK; }
-diff /home/perkins/Source/wrk/bandwidthd/conf.y ./conf.y
+diff -r /home/perkins/Source/wrk/bandwidthd/conf.y ./conf.y
 14a15
 > extern unsigned int NotSubnetCount;
 15a17
@@ -1391,7 +1394,7 @@ diff /home/perkins/Source/wrk/bandwidthd/conf.y ./conf.y
 >   config.output_database = DB_SQLITE;
 >   }
 >   ;
-diff /home/perkins/Source/wrk/bandwidthd/configure.in ./configure.in
+diff -r /home/perkins/Source/wrk/bandwidthd/configure.in ./configure.in
 10,11c10,11
 < RELEASE_VERSION=0
 < EXTRA_VERSION=""
@@ -1490,10 +1493,13 @@ diff /home/perkins/Source/wrk/bandwidthd/configure.in ./configure.in
 > fi
 > 
 > 
-Common subdirectories: /home/perkins/Source/wrk/bandwidthd/etc and ./etc
-Common subdirectories: /home/perkins/Source/wrk/bandwidthd/extensions and ./extensions
-Common subdirectories: /home/perkins/Source/wrk/bandwidthd/htdocs and ./htdocs
-diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
+Only in ./etc: .svn
+Only in ./etc/CVS: .svn
+Only in ./extensions: .svn
+Only in ./extensions/CVS: .svn
+Only in ./htdocs: .svn
+Only in ./htdocs/CVS: .svn
+diff -r /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 5a6
 > extern struct Broadcast *Broadcasts;
 34c35
@@ -1522,39 +1528,21 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			return(NULL);
 > 			}
 > 		PQclear(res);
-105c115,174
+105c115
 < 			res = PQexec(conn,	"alter table bd_rx_log add column mail int;");
 ---
 > 			res = PQexec(conn,  "alter table bd_rx_log add column mail int;");
-> 			if (PQresultStatus(res) != PGRES_COMMAND_OK)
-> 				{
-> 				syslog(LOG_ERR, "Add column failed: %s", PQerrorMessage(conn));
-> 				PQclear(res);
-> 				PQfinish(conn);
-> 				return(NULL);
-> 				}
-> 			PQclear(res);
-> 
+115c125
+< 			res = PQexec(conn,	"alter table bd_tx_log add column mail int;");
+---
 > 			res = PQexec(conn,  "alter table bd_tx_log add column mail int;");
-> 			if (PQresultStatus(res) != PGRES_COMMAND_OK)
-> 				{
-> 				syslog(LOG_ERR, "Add column failed: %s", PQerrorMessage(conn));
-> 				PQclear(res);
-> 				PQfinish(conn);
-> 				return(NULL);
-> 				}
-> 			PQclear(res);
-> 
+125c135
+< 			res = PQexec(conn,	"alter table bd_rx_total_log add column mail int;");
+---
 > 			res = PQexec(conn,  "alter table bd_rx_total_log add column mail int;");
-> 			if (PQresultStatus(res) != PGRES_COMMAND_OK)
-> 				{
-> 				syslog(LOG_ERR, "Add column failed: %s", PQerrorMessage(conn));
-> 				PQclear(res);
-> 				PQfinish(conn);
-> 				return(NULL);
-> 				}
-> 			PQclear(res);
-> 
+135c145,203
+< 			res = PQexec(conn,	"alter table bd_tx_total_log add column mail int;");
+---
 > 			res = PQexec(conn,  "alter table bd_tx_total_log add column mail int;");
 > 			if (PQresultStatus(res) != PGRES_COMMAND_OK)
 > 				{
@@ -1569,7 +1557,6 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			{
 > 			PQclear(res);
 > 			}
-> 
 > 		res = PQexec(conn, "SELECT table_name, column_name from information_schema.columns where table_name = 'bd_rx_log' and column_name = 'mac';");
 > 
 > 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -1585,25 +1572,43 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			PQclear(res);
 > 
 > 			res = PQexec(conn,  "alter table bd_rx_log add column mac character varying(20);");
-115c184
-< 			res = PQexec(conn,	"alter table bd_tx_log add column mail int;");
----
+> 			if (PQresultStatus(res) != PGRES_COMMAND_OK)
+> 				{
+> 				syslog(LOG_ERR, "Add column failed: %s", PQerrorMessage(conn));
+> 				PQclear(res);
+> 				PQfinish(conn);
+> 				return(NULL);
+> 				}
+> 			PQclear(res);
+> 
 > 			res = PQexec(conn,  "alter table bd_tx_log add column mac character varying(20);");
-125c194
-< 			res = PQexec(conn,	"alter table bd_rx_total_log add column mail int;");
----
+> 			if (PQresultStatus(res) != PGRES_COMMAND_OK)
+> 				{
+> 				syslog(LOG_ERR, "Add column failed: %s", PQerrorMessage(conn));
+> 				PQclear(res);
+> 				PQfinish(conn);
+> 				return(NULL);
+> 				}
+> 			PQclear(res);
+> 
 > 			res = PQexec(conn,  "alter table bd_rx_total_log add column mac character varying(20);");
-135c204
-< 			res = PQexec(conn,	"alter table bd_tx_total_log add column mail int;");
----
+> 			if (PQresultStatus(res) != PGRES_COMMAND_OK)
+> 				{
+> 				syslog(LOG_ERR, "Add column failed: %s", PQerrorMessage(conn));
+> 				PQclear(res);
+> 				PQfinish(conn);
+> 				return(NULL);
+> 				}
+> 			PQclear(res);
+> 
 > 			res = PQexec(conn,  "alter table bd_tx_total_log add column mac character varying(20);");
-183,184c252,253
+183,184c251,252
 < 		2,		 /* number of params */
 < 		NULL,	 /* let the backend deduce param type */
 ---
 > 		2,       /* number of params */
 > 		NULL,    /* let the backend deduce param type */
-186,188c255,257
+186,188c254,256
 < 		NULL,	 /* don't need param lengths since text */
 < 		NULL,	 /* default to all text params */
 < 		0);		 /* ask for binary results */
@@ -1611,17 +1616,17 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 		NULL,    /* don't need param lengths since text */
 > 		NULL,    /* default to all text params */
 > 		0);      /* ask for binary results */
-216c285
+216c284
 < 																															 
 ---
 > 																															
-238,239c307,308
+238,239c306,307
 < 		3,		 /* number of parameters */
 < 		NULL,	 /* let the backend deduce param type */
 ---
 > 		3,       /* number of parameters */
 > 		NULL,    /* let the backend deduce param type */
-241,243c310,312
+241,243c309,311
 < 		NULL,	 /* don't need param lengths since text */
 < 		NULL,	 /* default to all text params */
 < 		0);		 /* ask for binary results */
@@ -1629,7 +1634,7 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 		NULL,    /* don't need param lengths since text */
 > 		NULL,    /* default to all text params */
 > 		0);      /* ask for binary results */
-258a328,403
+258a327,402
 > PGconn *pgsqlUpdateLinkStatus(PGconn *conn, char *sensor_id)
 > 	{
 > 	struct Broadcast *bc;
@@ -1706,13 +1711,13 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 	return(conn);
 > 	}
 > 
-277,278c422,423
+277,278c421,422
 < 			5,		 /* number of parameters */
 < 			NULL,	 /* let the backend deduce param type */
 ---
 > 			5,       /* number of parameters */
 > 			NULL,    /* let the backend deduce param type */
-280,282c425,427
+280,282c424,426
 < 			NULL,	 /* don't need param lengths since text */
 < 			NULL,	 /* default to all text params */
 < 			0);		 /* ask for binary results */
@@ -1720,13 +1725,13 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			NULL,    /* don't need param lengths since text */
 > 			NULL,    /* default to all text params */
 > 			0);      /* ask for binary results */
-308,309c453,454
+308,309c452,453
 < 			1,		 /* number of parameters */
 < 			NULL,	 /* let the backend deduce param type */
 ---
 > 			1,       /* number of parameters */
 > 			NULL,    /* let the backend deduce param type */
-311,313c456,458
+311,313c455,457
 < 			NULL,	 /* don't need param lengths since text */
 < 			NULL,	 /* default to all text params */
 < 			0);		 /* ask for binary results */
@@ -1734,13 +1739,13 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			NULL,    /* don't need param lengths since text */
 > 			NULL,    /* default to all text params */
 > 			0);      /* ask for binary results */
-351c496
+351c495
 < 	char Values[13][MAX_PARAM_SIZE];
 ---
 > 	char Values[14][MAX_PARAM_SIZE];
-369a515
+369a514
 > 	paramValues[13] = Values[13];
-460a607,613
+460a606,612
 > 	// Update link state
 > 	if (!(conn = pgsqlUpdateLinkStatus(conn, sensor_id)))
 > 		{
@@ -1748,13 +1753,13 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 		_exit(2);
 > 		}
 > 
-463,464c616,617
+463,464c615,616
 < 		0,		 /* number of params */
 < 		NULL,	 /* let the backend deduce param type */
 ---
 > 		0,       /* number of params */
 > 		NULL,    /* let the backend deduce param type */
-466,468c619,621
+466,468c618,620
 < 		NULL,	 /* don't need param lengths since text */
 < 		NULL,	 /* default to all text params */
 < 		0);		 /* ask for binary results */
@@ -1762,21 +1767,25 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 		NULL,    /* don't need param lengths since text */
 > 		NULL,    /* default to all text params */
 > 		0);      /* ask for binary results */
-494,495c647,648
+494,495c646,647
 < 			sql1 = "INSERT INTO bd_tx_total_log (sensor_id, timestamp, sample_duration, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);";
 < 			sql2 = "INSERT INTO bd_rx_total_log (sensor_id, timestamp, sample_duration, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);";
 ---
 > 			sql1 = "INSERT INTO bd_tx_total_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14);";
 > 			sql2 = "INSERT INTO bd_rx_total_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14);";
-499,500c652,653
+499,500c651,652
 < 			sql1 = "INSERT INTO bd_tx_log (sensor_id, timestamp, sample_duration, ip, packet_count, total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);";
 < 			sql2 = "INSERT INTO bd_rx_log (sensor_id, timestamp, sample_duration, ip, packet_count, total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);"; 
 ---
 > 			sql1 = "INSERT INTO bd_tx_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count, total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14);";
 > 			sql2 = "INSERT INTO bd_rx_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count, total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14);";
-501a655
+501a654
 > 		snprintf(Values[3], MAX_PARAM_SIZE, "%s", IPData->mac[0]);
-509,517c663,671
+503c656
+< 		HostIp2CharIp(IPData->ip, Values[3]);
+---
+> 		HostIp2CharIp(IPData->ip, Values[4]);
+509,517c662,670
 < 			snprintf(Values[4], MAX_PARAM_SIZE, "%llu", Stats->packet_count);
 < 			snprintf(Values[5], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->total)/1024.0) + 0.5));
 < 			snprintf(Values[6], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->icmp)/1024.0) + 0.5));
@@ -1796,13 +1805,13 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			snprintf(Values[11], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->http)/1024.0) + 0.5));
 > 			snprintf(Values[12], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->mail)/1024.0) + 0.5));
 > 			snprintf(Values[13], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
-520,521c674,675
+520,521c673,674
 < 				13,		  
 < 				NULL,	 /* let the backend deduce param type */
 ---
 > 				14,       
 > 				NULL,    /* let the backend deduce param type */
-523,525c677,679
+523,525c676,678
 < 				NULL,	 /* don't need param lengths since text */
 < 				NULL,	 /* default to all text params */
 < 				1);		 /* ask for binary results */
@@ -1810,7 +1819,7 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 				NULL,    /* don't need param lengths since text */
 > 				NULL,    /* default to all text params */
 > 				1);      /* ask for binary results */
-540,548c694,702
+540,548c693,701
 < 			snprintf(Values[4], MAX_PARAM_SIZE, "%llu", Stats->packet_count);
 < 			snprintf(Values[5], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->total)/1024.0) + 0.5));
 < 			snprintf(Values[6], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->icmp)/1024.0) + 0.5));
@@ -1830,13 +1839,13 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			snprintf(Values[11], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->http)/1024.0) + 0.5));
 > 			snprintf(Values[12], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->mail)/1024.0) + 0.5));
 > 			snprintf(Values[13], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
-551,552c705,706
+551,552c704,705
 < 				13,		  
 < 				NULL,	 /* let the backend deduce param type */
 ---
 > 				14,       
 > 				NULL,    /* let the backend deduce param type */
-554,556c708,710
+554,556c707,709
 < 				NULL,	 /* don't need param lengths since text */
 < 				NULL,	 /* default to all text params */
 < 				1);		 /* ask for binary results */
@@ -1844,17 +1853,17 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 				NULL,    /* don't need param lengths since text */
 > 				NULL,    /* default to all text params */
 > 				1);      /* ask for binary results */
-567c721
+567c720
 < 			}		
 ---
 > 			}
-620,621c774,775
+620,621c773,774
 < 			fields+2,		
 < 			NULL,	 /* let the backend deduce param type */
 ---
 > 			fields+2,       
 > 			NULL,    /* let the backend deduce param type */
-623,625c777,779
+623,625c776,778
 < 			NULL,	 /* don't need param lengths since text */
 < 			NULL,	 /* default to all text params */
 < 			1);		 /* ask for binary results */
@@ -1862,4 +1871,7 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 > 			NULL,    /* don't need param lengths since text */
 > 			NULL,    /* default to all text params */
 > 			1);      /* ask for binary results */
-Common subdirectories: /home/perkins/Source/wrk/bandwidthd/phphtdocs and ./phphtdocs
+Only in ./phphtdocs: .svn
+Only in ./phphtdocs/CVS: .svn
+Only in ./phphtdocs/manage: .svn
+Only in ./phphtdocs/manage/CVS: .svn

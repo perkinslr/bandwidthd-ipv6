@@ -1,5 +1,8 @@
 2.0.2.IPv6
 
+Added second param to IPTableTransform.main for the name of the sensor in use.
+Included sample IPTableTransform.py that outputs to a mysql DB
+Changed name of python module from LookupMac to IPTableTransform
 Fixed bug in pgsql.c where it was passing the mac address to HostIp2CharIp instead of the IP address (pgsql.c)
 Fixed bug in pgsql.c where it was passing the wrong number of parameters to PQexecParams (pgsql.c)
 Added support for excluding subnets. (conf.l conf.y)

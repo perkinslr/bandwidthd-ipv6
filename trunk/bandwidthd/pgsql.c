@@ -156,7 +156,6 @@ PGconn *pgsqlCheckTables(PGconn *conn)
 			{
 			PQclear(res);
 			}
-
 		res = PQexec(conn, "SELECT table_name, column_name from information_schema.columns where table_name = 'bd_rx_log' and column_name = 'mac';");
 
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -654,7 +653,7 @@ void pgsqlStoreIPData(struct IPData IncData[], struct extensions *extension_data
 			}
 		snprintf(Values[3], MAX_PARAM_SIZE, "%s", IPData->mac[0]);
 
-		HostIp2CharIp(IPData->ip, Values[3]);
+		HostIp2CharIp(IPData->ip, Values[4]);
 
 		Stats = &(IPData->Send);
 		if (Stats->total > 512) // Don't log empty sets

@@ -1,5 +1,6 @@
 2.0.2.IPv6
 
+Fixed bug in pgsql.c where it was passing the mac address to HostIp2CharIp instead of the IP address (pgsql.c)
 Fixed bug in pgsql.c where it was passing the wrong number of parameters to PQexecParams (pgsql.c)
 Added support for excluding subnets. (conf.l conf.y)
 Added mac record support for pgsql. (pgsql.c)

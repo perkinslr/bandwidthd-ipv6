@@ -1800,7 +1800,7 @@ diff /home/perkins/Source/wrk/bandwidthd/pgsql.c ./pgsql.c
 < 				13,		  
 < 				NULL,	 /* let the backend deduce param type */
 ---
-> 				13,       
+> 				14,       
 > 				NULL,    /* let the backend deduce param type */
 523,525c677,679
 < 				NULL,	 /* don't need param lengths since text */

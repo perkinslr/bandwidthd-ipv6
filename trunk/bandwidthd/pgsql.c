@@ -671,7 +671,7 @@ void pgsqlStoreIPData(struct IPData IncData[], struct extensions *extension_data
 			snprintf(Values[13], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
 
 			res = PQexecParams(conn, sql1,
-				13,       
+				14,       
 				NULL,    /* let the backend deduce param type */
 				paramValues,
 				NULL,    /* don't need param lengths since text */

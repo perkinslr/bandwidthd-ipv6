@@ -1,3 +1,19 @@
+2.0.2.IPv6
+
+Added support for excluding subnets.
+Added mac record support for pgsql.
+
+Cleaned up whitespace (bandwidthd.c)
+Moved global variables from top of bandwidthd.c to bandwidthd.h 
+	(help avoid namespace collisions if someone only looks in the header file)
+Added struct for vlan headers (bandwidthd.h)
+Added configure option for turning pgsql off (configure.in)
+Added functions for ignoring subnets (bandwidthd.c)
+Added configure option for embedding python for scripting and to optimize ip lookups (bandwidthd.c bandwidthd.h configure.in)
+
+
+2.0.1
+
 Make file tweaks
 Add Support for SQLight database
 Adhere more strictly to GNU coding standards for directories

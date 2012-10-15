@@ -6,3 +6,6 @@ AC_DEFUN([AC_DEFINE_DIR], [
   AC_SUBST($1, "$ac_define_dir")
   AC_DEFINE_UNQUOTED($1, "$ac_define_dir", [$3])
 ])
+
+
+

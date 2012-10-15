@@ -1,3 +1,11 @@
+Copyright Logan Perkins 2012 <perkins@alestan.publicvm.com>
+
+Parts copyright David Hinkle.
+
+Based off of bandwidthd, by David Hinkle.  Special thanks to the bandwidthd 
+team of developers.  The original readme file follows below, as the changes
+thus far have been minor.  For the complete changes since the fork, see BD.diff
+
 Programmed by David Hinkle, Commissioned by DerbyTech of Illinois.  
 Special thanks goes to Brice Beaman at brice@beamans.org for releasing 
 the software, testing and debugging, Blaze at ts@spective.net for his 

@@ -2,6 +2,10 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_PYTHON
+#include <Python.h>
+#endif
+
 #include <unistd.h>
 #include <errno.h>
 #include <sys/socket.h>
@@ -68,7 +72,7 @@ typedef u_int16_t uint16_t;
 
 #define BUILD 17
 
-#define IP_NUM 10000			// TODO: Do this dynamicly to save ram and/or scale bigger
+#define IP_NUM 256*256			// TODO: Do this dynamicly to save ram and/or scale bigger
 #define SUBNET_NUM 100
 
 #define XWIDTH 900
@@ -83,7 +87,7 @@ typedef u_int16_t uint16_t;
 #define RANGE3 3024000.0	// 35 days
 #define RANGE4 35640000.0	// 412.5ish days 
 
-#define INTERVAL1 200L		// 150 -60 (213 is the perfect interval?)
+#define INTERVAL1 20L		// 150 -60 (213 is the perfect interval?)
 #define INTERVAL2 600L		// 10 minutes
 #define INTERVAL3 3600L		// 1 hour
 #define INTERVAL4 43200L	// 12 hours 
@@ -154,6 +158,7 @@ struct Statistics
 struct IPData
 	{
 	time_t timestamp;
+	char *mac[1][20];
 	uint32_t ip;	// Host byte order
 	struct Statistics Send;
 	struct Statistics Receive;
@@ -171,13 +176,13 @@ struct SummaryData
 	unsigned long long TCP;
 	unsigned long long FTP;
 	unsigned long long HTTP;
-	unsigned long long MAIL;	
+	unsigned long long MAIL;
 	unsigned long long P2P;
 	};
 
 struct IPDataStore
 	{
-	uint32_t ip;	
+	uint32_t ip;
 	struct DataStoreBlock *FirstBlock;	// This is structure is allocated at the same time, so it always exists.
 		
 	struct IPDataStore *Next;
@@ -192,6 +197,25 @@ struct DataStoreBlock
 
 	struct DataStoreBlock *Next;
 	};
+
+struct Broadcast
+  {
+  char *sensor_name;
+  char *interface;
+  time_t received;
+
+  struct Broadcast *next;
+  };
+
+// Vlan header
+
+struct VlanHeader
+{
+  u_int8_t  ether_dhost[6];  /* destination eth addr */
+  u_int8_t  ether_shost[6];  /* source ether addr  */
+  u_int8_t  ether_type[2];   /* packet type ID field */
+  u_int8_t  vlan_tag[2];     /* vlan tag information */
+} __attribute__ ((__packed__));
 
 struct extensions {
 	char *name;
@@ -214,6 +238,7 @@ void RecoverDataFromCDF(void);
 
 // ************ Adds subnets to the list of subnets that are monitored
 void MonitorSubnet(unsigned int ip, unsigned int mask);
+
 
 // ************ This function converts and IP to a char string
 char inline 	*HostIp2CharIp(unsigned long ipaddr, char *buffer);
@@ -251,3 +276,47 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 struct extensions *execute_extensions(void);
 void destroy_extension_data(struct extensions *ext);
 
+// ************ Python
+#ifdef HAVE_PYTHON
+void iptable_Transform(uint32_t Counter);
+void initbandwidthd(void);
+#endif
+
+
+// ** Global Variables
+
+#define SNAPLEN 100
+
+/*
+static pcap_t *pd;
+unsigned int GraphIntervalCount = 0;
+unsigned int IpCount = 0;
+unsigned int SubnetCount = 0;
+unsigned int NotSubnetCount = 0;
+int IntervalFinished = FALSE;
+time_t IntervalStart;
+time_t ProgramStart;
+int RotateLogs = FALSE;
+int PacketCallbackLock = 0;
+pid_t pidGraphingChild = 0;
+struct SubnetData SubnetTable[SUBNET_NUM];
+struct SubnetData NotSubnetTable[SUBNET_NUM];
+struct IPData IpTable[IP_NUM];
+size_t ICGrandTotalDataPoints = 0;
+
+#ifdef HAVE_PYTHON
+PyObject *IpTableDict;
+#endif
+
+int DataLink;
+int IP_Offset;
+struct IPDataStore *IPDataStore = NULL;
+extern int bdconfig_parse(void);
+void BroadcastState(int fd);
+extern FILE *bdconfig_in;
+struct config config;
+struct Broadcast *Broadcasts = NULL;
+pid_t workerchildpids[NR_WORKER_CHILDS];
+void ResetTrafficCounters(void);
+void CloseInterval(void);
+*/

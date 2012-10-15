@@ -13,6 +13,8 @@ after you install it.
 
 Configure and install the Bandwidthd source:
 
+autoconf && autoheader
+
 ./configure && make install
 
 Edit /usr/local/bandwidthd/etc/bandwidthd.conf to suit

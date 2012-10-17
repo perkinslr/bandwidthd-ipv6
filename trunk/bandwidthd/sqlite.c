@@ -27,7 +27,7 @@ sqlite3 *sqliteCheckTables(sqlite3 *conn)
 
 	if (rows != 1)
 		{	
-		if (sqlite3_exec(conn, "CREATE TABLE bd_rx_log (sensor_id int, ip int, timestamp int, sample_duration int, packet_count int, total int, icmp int, udp int, tcp int, ftp int, http int, mail int, p2p int); create index bd_rx_log_sensor_id_ip_timestamp_idx on bd_rx_log (sensor_id, ip, timestamp); create index bd_rx_log_sensor_id_timestamp_idx on bd_rx_log(sensor_id, timestamp);", 
+		if (sqlite3_exec(conn, "CREATE TABLE bd_rx_log (sensor_id int, mac varchar, ip int, timestamp int, sample_duration int, packet_count int, total int, icmp int, udp int, tcp int, ftp int, http int, mail int, p2p int); create index bd_rx_log_sensor_id_ip_timestamp_idx on bd_rx_log (sensor_id, ip, timestamp); create index bd_rx_log_sensor_id_timestamp_idx on bd_rx_log(sensor_id, timestamp);", 
 			NULL, NULL, &error) != SQLITE_OK)
         	{
 	        syslog(LOG_ERR, "SQLite rrror creating table: %s", error);
@@ -37,7 +37,7 @@ sqlite3 *sqliteCheckTables(sqlite3 *conn)
 			return(NULL);
         	}
 
-		if (sqlite3_exec(conn, "CREATE TABLE bd_tx_log (sensor_id int, ip int, timestamp int, sample_duration int, packet_count int, total int, icmp int, udp int, tcp int, ftp int, http int, mail int, p2p int); create index bd_tx_log_sensor_id_ip_timestamp_idx on bd_tx_log (sensor_id, ip, timestamp); create index bd_tx_log_sensor_id_timestamp_idx on bd_tx_log(sensor_id, timestamp);",
+		if (sqlite3_exec(conn, "CREATE TABLE bd_tx_log (sensor_id int, mac varchar, ip int, timestamp int, sample_duration int, packet_count int, total int, icmp int, udp int, tcp int, ftp int, http int, mail int, p2p int); create index bd_tx_log_sensor_id_ip_timestamp_idx on bd_tx_log (sensor_id, ip, timestamp); create index bd_tx_log_sensor_id_timestamp_idx on bd_tx_log(sensor_id, timestamp);",
 			NULL, NULL, &error) != SQLITE_OK)
         	{
 	        syslog(LOG_ERR, "SQLite rrror creating table: %s", error);
@@ -250,7 +250,7 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 
 	time_t now;
 
-	if (!config.output_database == DB_PGSQL)
+	if (!config.output_database == DB_SQLITE)
 		return;
 
 	// ************ Inititialize the db if it's not already
@@ -372,7 +372,7 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 		}
 
 	if (sqlite3_prepare_v2(conn, 
-		"INSERT INTO bd_tx_log (sensor_id, timestamp, sample_duration, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES(:one, :two, :three, :four, :five, :six, :seven, :eight, :nine, :ten, :eleven, :twelve, :thirteen);",
+		"INSERT INTO bd_tx_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES(:one, :two, :three, :four, :five, :six, :seven, :eight, :nine, :ten, :eleven, :twelve, :thirteen, :fourteen);",
 		-1, &sqlStandardTXInsert, NULL) != SQLITE_OK)
 		{
 		syslog(LOG_ERR, "Error compiling SQL Statement");
@@ -380,7 +380,7 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 		}
 
 	if (sqlite3_prepare_v2(conn, 
-		"INSERT INTO bd_rx_log (sensor_id, timestamp, sample_duration, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES(:one, :two, :three, :four, :five, :six, :seven, :eight, :nine, :ten, :eleven, :twelve, :thirteen);",
+		"INSERT INTO bd_rx_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count,total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES(:one, :two, :three, :four, :five, :six, :seven, :eight, :nine, :ten, :eleven, :twelve, :thirteen, :fourteen);",
 		-1, &sqlStandardRXInsert, NULL) != SQLITE_OK)
 		{
 		syslog(LOG_ERR, "Error compiling SQL Statement");
@@ -409,7 +409,7 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 		IPData = &IncData[Counter];
 		sqlite3_stmt* sqlTXInsert;
 		sqlite3_stmt* sqlRXInsert;
-
+		int i=0;
 		if (IPData->ip == 0)
 			{
 			// This optimization allows us to quickly draw totals graphs for a sensor
@@ -420,24 +420,27 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 			{
 			sqlTXInsert = sqlStandardTXInsert;
 			sqlRXInsert = sqlStandardRXInsert;
+			printf("423, %s\n", IPData->mac[0]);
+			sqlite3_bind_text(sqlTXInsert, 4, IPData->mac, -1, SQLITE_STATIC);
+			sqlite3_bind_text(sqlRXInsert, 4, IPData->mac, -1, SQLITE_STATIC);
+			i=1;
 			}
-
-		sqlite3_bind_int(sqlTXInsert, 4, IPData->ip);
-		sqlite3_bind_int(sqlRXInsert, 4, IPData->ip);
-
+		sqlite3_bind_int(sqlTXInsert, 4+i, IPData->ip);
+		sqlite3_bind_int(sqlRXInsert, 4+i, IPData->ip);
+		
 		Stats = &(IPData->Send);
 		if (Stats->total > 512) // Don't log empty sets
 			{
 			// Log data in kilobytes
-			sqlite3_bind_int64(sqlTXInsert, 5, Stats->packet_count);
-			sqlite3_bind_int64(sqlTXInsert, 6, (long long unsigned int)((((double)Stats->total)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlTXInsert, 7, (long long unsigned int)((((double)Stats->icmp)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlTXInsert, 8, (long long unsigned int)((((double)Stats->udp)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlTXInsert, 9, (long long unsigned int)((((double)Stats->tcp)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlTXInsert, 10, (long long unsigned int)((((double)Stats->ftp)/1024.0) + 0.5)); 			
-			sqlite3_bind_int64(sqlTXInsert, 11, (long long unsigned int)((((double)Stats->http)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlTXInsert, 12, (long long unsigned int)((((double)Stats->mail)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlTXInsert, 13, (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlTXInsert, 5+i, Stats->packet_count);
+			sqlite3_bind_int64(sqlTXInsert, 6+i, (long long unsigned int)((((double)Stats->total)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlTXInsert, 7+i, (long long unsigned int)((((double)Stats->icmp)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlTXInsert, 8+i, (long long unsigned int)((((double)Stats->udp)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlTXInsert, 9+i, (long long unsigned int)((((double)Stats->tcp)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlTXInsert, 10+i, (long long unsigned int)((((double)Stats->ftp)/1024.0) + 0.5)); 			
+			sqlite3_bind_int64(sqlTXInsert, 11+i, (long long unsigned int)((((double)Stats->http)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlTXInsert, 12+i, (long long unsigned int)((((double)Stats->mail)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlTXInsert, 13+i, (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
 
 			if (sqlite3_step(sqlTXInsert) != SQLITE_DONE)
 				{
@@ -452,15 +455,15 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 		if (Stats->total > 512) // Don't log empty sets
 			{
 			// Log data in kilobytes
-			sqlite3_bind_int64(sqlRXInsert, 5, Stats->packet_count);
-			sqlite3_bind_int64(sqlRXInsert, 6, (long long unsigned int)((((double)Stats->total)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlRXInsert, 7, (long long unsigned int)((((double)Stats->icmp)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlRXInsert, 8, (long long unsigned int)((((double)Stats->udp)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlRXInsert, 9, (long long unsigned int)((((double)Stats->tcp)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlRXInsert, 10, (long long unsigned int)((((double)Stats->ftp)/1024.0) + 0.5)); 			
-			sqlite3_bind_int64(sqlRXInsert, 11, (long long unsigned int)((((double)Stats->http)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlRXInsert, 12, (long long unsigned int)((((double)Stats->mail)/1024.0) + 0.5));
-			sqlite3_bind_int64(sqlRXInsert, 13, (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlRXInsert, 5+i, Stats->packet_count);
+			sqlite3_bind_int64(sqlRXInsert, 6+i, (long long unsigned int)((((double)Stats->total)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlRXInsert, 7+i, (long long unsigned int)((((double)Stats->icmp)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlRXInsert, 8+i, (long long unsigned int)((((double)Stats->udp)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlRXInsert, 9+i, (long long unsigned int)((((double)Stats->tcp)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlRXInsert, 10+i, (long long unsigned int)((((double)Stats->ftp)/1024.0) + 0.5)); 			
+			sqlite3_bind_int64(sqlRXInsert, 11+i, (long long unsigned int)((((double)Stats->http)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlRXInsert, 12+i, (long long unsigned int)((((double)Stats->mail)/1024.0) + 0.5));
+			sqlite3_bind_int64(sqlRXInsert, 13+i, (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
 
 			if (sqlite3_step(sqlRXInsert) != SQLITE_DONE)
 				{

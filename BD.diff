@@ -1,11 +1,8 @@
 Only in .: .svn
 Only in .: BD.diff
 diff -r /home/perkins/Source/wrk/bandwidthd/CHANGELOG ./CHANGELOG
-0a1,24
+0a1,21
 > 2.0.2.IPv6
-> 
-> Added support for mac addresses in sqlite.
-> Renamed sqlight.c to sqlite.c
 > 
 > Added second param to IPTableTransform.main for the name of the sensor in use.
 > Included sample IPTableTransform.py that outputs to a mysql DB
@@ -31,11 +28,6 @@ diff -r /home/perkins/Source/wrk/bandwidthd/INSTALL.Unix ./INSTALL.Unix
 > autoconf && autoheader
 > 
 Only in .: IPTableTransform.py
-diff -r /home/perkins/Source/wrk/bandwidthd/Makefile.in ./Makefile.in
-10c10
-< OBS= bandwidthd.o graph.o conf.tab.o conf.l.o pgsql.o sqlight.o extensions.o
----
-> OBS= bandwidthd.o graph.o conf.tab.o conf.l.o pgsql.o sqlite.o extensions.o
 diff -r /home/perkins/Source/wrk/bandwidthd/README ./README
 0a1,8
 > Copyright Logan Perkins 2012 <perkins@alestan.publicvm.com>
@@ -1883,5 +1875,3 @@ Only in ./phphtdocs: .svn
 Only in ./phphtdocs/CVS: .svn
 Only in ./phphtdocs/manage: .svn
 Only in ./phphtdocs/manage/CVS: .svn
-Only in /home/perkins/Source/wrk/bandwidthd: sqlight.c
-Only in .: sqlite.c

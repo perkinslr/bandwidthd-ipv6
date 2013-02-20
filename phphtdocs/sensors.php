@@ -68,7 +68,7 @@ while ($r = pg_fetch_array($result))
 <? if ($graphs != "") $GraphsChecked = "Checked"; else $GraphsChecked = ""; ?>
 <td><input type="checkbox" name="graphs" <?=$GraphsChecked?>>Display Graphs</a>
 
-<td>Subnet Filter:<input name=subnet value="<?=isset($subnet)?$subnet:"0.0.0.0/0"?>"> 
+<td>Subnet Filter:<input name=subnet value="<?=isset($subnet)?$subnet:"0.0.0.0/0"?>">
 <input type=submit value="Go">
 </table>
 </FORM>
@@ -105,7 +105,7 @@ if (isset($subnet))
 	$sql_subnet = "and ip <<= '$subnet'";
 
 // Sql Statement
-$sql = "select tx.ip, rx.scale as rxscale, tx.scale as txscale, tx.total+rx.total as total, tx.total as sent, 
+$sql = "select tx.ip, rx.scale as rxscale, tx.scale as txscale, tx.total+rx.total as total, tx.total as sent,
 rx.total as received, tx.tcp+rx.tcp as tcp, tx.udp+rx.udp as udp,
 tx.icmp+rx.icmp as icmp, tx.http+rx.http as http,
 tx.mail+rx.mail as mail,
@@ -229,7 +229,7 @@ echo "<img src=legend.gif><br>\n";
 echo "<a href=#top>[Return to Top]</a>";
 
 // Output Other Graphs
-for($Counter=0; $Counter < pg_num_rows($result) && $Counter < $limit; $Counter++) 
+for($Counter=0; $Counter < pg_num_rows($result) && $Counter < $limit; $Counter++)
 	{
 	$r = pg_fetch_array($result, $Counter);
 	echo "<a name=".$r['ip']."><h3><a href=details.php?sensor_id=$sensor_id&ip=".$r['ip'].">";

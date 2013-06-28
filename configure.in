@@ -225,4 +225,26 @@ if test "$HAVEPYTHON" = "1" ; then
 fi
 
 
+AC_ARG_ENABLE([linked-ipdata], AC_HELP_STRING([--enable-linked-ipdata],
+	[Enable storing IPData as a linked list. Default is no, beta.]),
+	enable_linked_ipdata="$enableval", enable_linked_ipdata=no)
+if test "$enable_linked_ipdata" = "yes" ; then
+	AC_DEFINE_UNQUOTED(LINKEDIPDATA, $enable_linked_ipdata, "Set if we should use a linked list IPData, requires python support")
+fi
+
+AC_ARG_ENABLE([ipv6], AC_HELP_STRING([--enable-ipv6],
+	[Enable IPv6 support. Default is no, beta.]),
+	enable_IPv6="$enableval", enableIPv6=no)
+if test "$enable_IPv6" = "yes" ; then
+	AC_DEFINE_UNQUOTED(IPV6, $enable_IPv6, "Set if IPv6 support is to be compiled.")
+fi
+
+
+AC_ARG_ENABLE([ipv4], AC_HELP_STRING([--enable-ipv4],
+	[Enable IPv6 support. Default is yes, standard.]),
+	enable_IPv4="$enableval", enableIPv4=yes)
+if test "$enable_IPv4" = "yes" ; then
+	AC_DEFINE_UNQUOTED(IPV4, $enable_IPv4, "Set if IPv4 support is to be compiled.")
+fi
+
 AC_OUTPUT(Makefile)

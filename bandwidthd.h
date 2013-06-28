@@ -2,6 +2,10 @@
 #include "config.h"
 #endif
 
+#ifndef HAVE_PYTHON
+#undef LINKEDIPDATA
+#endif
+
 #ifdef HAVE_PYTHON
 #include <Python.h>
 #endif
@@ -110,6 +114,10 @@ typedef u_int16_t uint16_t;
 #define DB_MYSQL 2 // No mysql support yet
 #define DB_SQLITE 3
 
+#define IPDATAALLOCCHUNKS 100
+
+#define malloc0(size_t) calloc(size_t)
+
 struct config
 	{
 	char *dev;
@@ -162,8 +170,13 @@ struct IPData
 	uint32_t ip;	// Host byte order
 	struct Statistics Send;
 	struct Statistics Receive;
+#ifdef LINKEDIPDATA
+	struct IPData *Next;
+	struct IPData *Previous;
+	};
+#else
 	} IpTable[IP_NUM];
-
+#endif
 struct SummaryData
 	{
 	uint32_t IP;
@@ -184,17 +197,15 @@ struct IPDataStore
 	{
 	uint32_t ip;
 	struct DataStoreBlock *FirstBlock;	// This is structure is allocated at the same time, so it always exists.
-		
 	struct IPDataStore *Next;
 	};
 
-#define IPDATAALLOCCHUNKS 100
+
 struct DataStoreBlock
 	{
 	time_t LatestTimestamp;
 	int NumEntries;  // Is the index of the first unused entry in IPData
 	struct IPData *Data;  // These are allocated at creation, and thus always exist
-
 	struct DataStoreBlock *Next;
 	};
 

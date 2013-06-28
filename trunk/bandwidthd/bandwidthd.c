@@ -26,7 +26,9 @@ int PacketCallbackLock = 0;
 pid_t pidGraphingChild = 0;
 struct SubnetData SubnetTable[SUBNET_NUM];
 struct SubnetData NotSubnetTable[SUBNET_NUM];
+#if defined (HAVE_PYTHON) && defined (LINKEDIPDATA)
 struct IPData IpTable[IP_NUM];
+#endif
 size_t ICGrandTotalDataPoints = 0;
 
 #ifdef HAVE_PYTHON
@@ -883,15 +885,24 @@ void StoreIPDataInCDF(struct IPData IncData[])
 	char logfile[MAX_FILENAME];
 	snprintf(logfile, MAX_FILENAME, "%s/log.%c.0.cdf", config.log_dir, config.tag);
 	cdf = fopen(logfile, "at");
+#ifdef LINKEDIPDATA
+	IPData = &IncData[0];
+	while (IPData)
+		{
+#else
 	for (Counter=0; Counter < IpCount; Counter++)
 		{
 		IPData = &IncData[Counter];
+#endif
 		HostIp2CharIp(IPData->ip, IPBuffer);
 		fprintf(cdf, "%s,%lu,", IPBuffer, IPData->timestamp);
 		Stats = &(IPData->Send);
 		fprintf(cdf, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu", Stats->total, Stats->icmp, Stats->udp, Stats->tcp, Stats->ftp, Stats->http, Stats->mail, Stats->p2p); 
 		Stats = &(IPData->Receive);
 		fprintf(cdf, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n", Stats->total, Stats->icmp, Stats->udp, Stats->tcp, Stats->ftp, Stats->http, Stats->mail, Stats->p2p); 
+#ifdef LINKEDIPDATA
+		IPData=IPData->Next;
+#endif
 		}
 	fclose(cdf);
 	}
@@ -970,10 +981,20 @@ void _StoreIPDataInRam(struct IPData *IPData)
 
 void StoreIPDataInRam(struct IPData IncData[])
 	{
+#ifndef LINKEDIPDATA
 	unsigned int Counter;
 	for (Counter=0; Counter < IpCount; Counter++)
 		_StoreIPDataInRam(&IncData[Counter]);
+#else
+	struct IPData *IPData = &IncData[0];
+	while (IPData)
+		{
+		_StoreIPDataInRam(IPData);
+		IPData=IPData->Next;
+		}
+#endif
 	}
+
 
 void CommitData(time_t timestamp)
 	{
@@ -1217,9 +1238,9 @@ inline struct IPData *FindIp(uint32_t ipaddr)
 		abort();
 	}
 	if (Counter){
-		Counter=PyInt_AsLong(PyDict_GetItem(IpTableDict, oIP));
+		uintptr_t lCounter=PyInt_AsLong(PyDict_GetItem(IpTableDict, oIP));
 		Py_DECREF(oIP);
-		return &IpTable[Counter];
+		return ((struct IPData *) lCounter);
 	}
 #endif
 	if (IpCount >= IP_NUM)
@@ -1236,12 +1257,14 @@ inline struct IPData *FindIp(uint32_t ipaddr)
 	IpTable[IpCount].ip = ipaddr;
 	return (&IpTable[IpCount++]);
 #else
-	oCounter=PyInt_FromLong(IpCount);
-  IpTable[IpCount].ip = ipaddr;
-  PyDict_SetItem(IpTableDict, oIP, oCounter);
-  Py_DECREF(oCounter);
-  Py_DECREF(oIP);
-  return (&IpTable[IpCount++]);
+	oCounter=PyInt_FromLong((uintptr_t )&IpTable[IpCount]);
+	IpTable[IpCount].ip = ipaddr;
+	IpTable[IpCount-1].Next=&IpTable[IpCount];
+	IpTable[IpCount].Previous=&IpTable[IpCount-1];
+	PyDict_SetItem(IpTableDict, oIP, oCounter);
+	Py_DECREF(oCounter);
+	Py_DECREF(oIP);
+	return (&IpTable[IpCount++]);
 #endif
 	}
 
@@ -1297,7 +1320,11 @@ void iptable_Transform(uint32_t Counter)
     if (pFunc && PyCallable_Check(pFunc))
       {
       pArgs= PyTuple_New(2);
+#ifndef LINKEDIPDATA
       PyTuple_SetItem(pArgs, 0, PyLong_FromUnsignedLong(Counter));
+#else
+      PyTuple_SetItem(pArgs, 0, PyDict_Keys(IpTableDict));
+#endif
       PyTuple_SetItem(pArgs, 1, PyString_FromString(config.sensor_name));
       pValue = PyObject_CallObject(pFunc, pArgs);
       Py_DECREF(pArgs);
@@ -1322,35 +1349,45 @@ void iptable_Transform(uint32_t Counter)
 
 static PyObject *bandwidthd_get_entry_as_dict(PyObject *self, PyObject* args)
 {
+#ifndef LINKEDIPDATA
   uint32_t iCounter;
-  struct IPData ip_entry;
+  struct IPData *ip_entry;
   if (!PyArg_ParseTuple(args, "k", &iCounter))
     return NULL;
-  ip_entry=IpTable[iCounter];
+  ip_entry=&IpTable[iCounter];
+#else
+  uintptr_t iPtr;
+  PyObject *oIP;
+  struct IPData *ip_entry;
+  if (!PyArg_ParseTuple(args, "O", &oIP))
+    return NULL;
+  iPtr=PyInt_AsLong(PyDict_GetItem(IpTableDict, oIP));
+  ip_entry = ((struct IPData *) iPtr);
+#endif
   return Py_BuildValue("{s:k,s:s,s:l,s:{s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K},s:{s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K}}",
-    "ip"    , ip_entry.ip,
-    "mac"    , ip_entry.mac,
-    "timestamp" , ip_entry.timestamp,
-    "send"    ,
-    "total"  , ip_entry.Send.total,
-    "tcp"    , ip_entry.Send.tcp,
-    "udp"    , ip_entry.Send.udp,
-    "p2p"    , ip_entry.Send.p2p,
-    "mail"    , ip_entry.Send.mail,
-    "icmp"    , ip_entry.Send.icmp,
-    "http"    , ip_entry.Send.http,
-    "ftp"    , ip_entry.Send.ftp,
-    "packets"   , ip_entry.Send.packet_count,
+    "ip"        , ip_entry->ip,
+    "mac"       , ip_entry->mac,
+    "timestamp" , ip_entry->timestamp,
+    "send"      ,
+    "total"     , ip_entry->Send.total,
+    "tcp"       , ip_entry->Send.tcp,
+    "udp"       , ip_entry->Send.udp,
+    "p2p"       , ip_entry->Send.p2p,
+    "mail"      , ip_entry->Send.mail,
+    "icmp"      , ip_entry->Send.icmp,
+    "http"      , ip_entry->Send.http,
+    "ftp"       , ip_entry->Send.ftp,
+    "packets"   , ip_entry->Send.packet_count,
     "receive"   ,
-    "total"  , ip_entry.Receive.total,
-    "tcp"    , ip_entry.Receive.tcp,
-    "udp"    , ip_entry.Receive.udp,
-    "p2p"    , ip_entry.Receive.p2p,
-    "mail"    , ip_entry.Receive.mail,
-    "icmp"    , ip_entry.Receive.icmp,
-    "http"    , ip_entry.Receive.http,
-    "ftp"    , ip_entry.Receive.ftp,
-    "packets"   , ip_entry.Receive.packet_count
+    "total"     , ip_entry->Receive.total,
+    "tcp"       , ip_entry->Receive.tcp,
+    "udp"       , ip_entry->Receive.udp,
+    "p2p"       , ip_entry->Receive.p2p,
+    "mail"      , ip_entry->Receive.mail,
+    "icmp"      , ip_entry->Receive.icmp,
+    "http"      , ip_entry->Receive.http,
+    "ftp"       , ip_entry->Receive.ftp,
+    "packets"   , ip_entry->Receive.packet_count
     );
 }
 static PyObject *bandwidthd_set_entry_by_dict(PyObject *self, PyObject* args)
@@ -1368,6 +1405,7 @@ static PyObject *bandwidthd_set_entry_by_dict(PyObject *self, PyObject* args)
   printf("ip: %i\nnew_ip: %i\n", IpTable[iCounter].ip,ip_entry.ip);
   return Py_BuildValue("s",IpTable[iCounter].mac[0]);
 #else
+#ifndef LINKEDIPDATA
   uint32_t iCounter;
   int *len;
   char *mac;
@@ -1376,6 +1414,20 @@ static PyObject *bandwidthd_set_entry_by_dict(PyObject *self, PyObject* args)
   strncpy(IpTable[iCounter].mac[0], mac, 17);
   IpTable[iCounter].mac[0][17] = '\0';
   return Py_BuildValue("s",IpTable[iCounter].mac[0]);
+#else
+  uintptr_t iPtr;
+  PyObject *oIP;
+  struct IPData *ip_entry;
+  int *len;
+  char *mac;
+  if (!PyArg_ParseTuple(args, "Os#", &oIP, &mac, &len))
+    return NULL;
+  iPtr=PyInt_AsLong(PyDict_GetItem(IpTableDict, oIP));
+  ip_entry = ((struct IPData *) iPtr);
+  strncpy(ip_entry->mac[0], mac, 17);
+  ip_entry->mac[0][17]='\0';
+  return Py_BuildValue("s", ip_entry->mac[0]);
+#endif
 #endif
 }
 

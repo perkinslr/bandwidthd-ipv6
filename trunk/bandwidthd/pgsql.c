@@ -475,14 +475,18 @@ static void pgsqllngjmp(int signal)
 	{
 	longjmp(pgsqljmp, 1);	
 	}
-
+#ifndef LINKEDIPDATA
 void pgsqlStoreIPData(struct IPData IncData[], struct extensions *extension_data)
+#else
+void pgsqlStoreIPData(struct IPData *IPData, struct extensions *extension_data)
+#endif
 	{
 #ifdef HAVE_LIBPQ
 	static char sensor_id[MAX_PARAM_SIZE] = { '\0' };
 	static pid_t child = 0;
-
+#ifndef LINKEDIPDATA
 	struct IPData *IPData;
+#endif
 	unsigned int Counter;
 	struct Statistics *Stats;
 	PGresult   *res;
@@ -636,9 +640,14 @@ void pgsqlStoreIPData(struct IPData IncData[], struct extensions *extension_data
 	strncpy(Values[0], sensor_id, MAX_PARAM_SIZE);
 	strncpy(Values[1], now, MAX_PARAM_SIZE);
 	snprintf(Values[2], MAX_PARAM_SIZE, "%llu", config.interval);
+#ifdef LINKEDIPDATA
+	while (IPData)
+		{
+#else
 	for (Counter=0; Counter < IpCount; Counter++)
 		{
 		IPData = &IncData[Counter];
+#endif
 
 		if (IPData->ip == 0)
 			{
@@ -718,6 +727,9 @@ void pgsqlStoreIPData(struct IPData IncData[], struct extensions *extension_data
 				}
 			PQclear(res);
 			}
+#ifdef LINKEDIPDATA
+		IPData=IPData->Next;
+#endif
 		}
 
 	// Insert extension data

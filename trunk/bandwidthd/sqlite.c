@@ -234,13 +234,18 @@ sqlite3* sqliteIncReboots(sqlite3* conn, int sensor_id)
 	}
 #endif
 
+#ifndef LINKEDIPDATA
 void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_data)
+#else
+void sqliteStoreIPData(struct IPData *IPData, struct extensions *extension_data)
+#endif
 	{
 #ifdef HAVE_LIBSQLITE3
 	static int sensor_id = -1;
 	static pid_t child = 0;
-
+#ifndef LINKEDIPDATA
 	struct IPData *IPData;
+#endif
 	unsigned int Counter;
 	struct Statistics *Stats;
 
@@ -404,9 +409,14 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 	sqlite3_bind_int(sqlTotalRXInsert, 3, config.interval);
 
 	// Preform Inserts
+#ifdef LINKEDIPDATA
+	while (IPData)
+		{
+#else
 	for (Counter=0; Counter < IpCount; Counter++)
 		{
 		IPData = &IncData[Counter];
+#endif
 		sqlite3_stmt* sqlTXInsert;
 		sqlite3_stmt* sqlRXInsert;
 		int i=0;
@@ -420,7 +430,6 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 			{
 			sqlTXInsert = sqlStandardTXInsert;
 			sqlRXInsert = sqlStandardRXInsert;
-			printf("423, %s\n", IPData->mac[0]);
 			sqlite3_bind_text(sqlTXInsert, 4, IPData->mac, -1, SQLITE_STATIC);
 			sqlite3_bind_text(sqlRXInsert, 4, IPData->mac, -1, SQLITE_STATIC);
 			i=1;
@@ -473,6 +482,9 @@ void sqliteStoreIPData(struct IPData IncData[], struct extensions *extension_dat
 
 			sqlite3_reset(sqlRXInsert);
 			}		
+#ifdef LINKEDIPDATA
+		IPData=IPData->Next;
+#endif
 		}
 
 	if (sqlite3_exec(conn, "commit;", NULL, NULL, &zErrMsg) != SQLITE_OK)

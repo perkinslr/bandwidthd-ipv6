@@ -1,0 +1,53 @@
+####################################################
+# Bandwidthd.conf
+#
+# Commented out options are here to provide
+# documentation and represent defaults
+
+# Subnets to collect statistics on.  Traffic that
+# matches none of these subnets will be ignored.
+# Syntax is either IP Subnet Mask or CIDR
+
+subnet %s
+
+
+# Device to listen on
+# Bandwidthd listens on the first device it detects
+# by default.  Run "bandwidthd -l" for a list of
+# devices.
+
+dev "%s"
+
+###################################################
+# Options for postgresql database logging.
+
+# Standard postgres connect string, just like php, see postgres docs for
+# details
+
+pgsql_connect_string "user = %s password = '%s' dbname = %s host = %s"
+
+# Arbitrary sensor name, I recommend the sensors fully qualified domain
+# name
+sensor_id "%s"
+
+# Tells Bandwidthd to keep no data and preform no graphing locally
+graph false
+# If this is set to true Bandwidthd will try to recover the daily log
+# into the database.  If you set this true on purpose only do it once.
+# Bandwidthd does not track the fact that it has already transferred
+# certain records into the database.
+recover_cdf false
+
+
+###################################################
+# Options that don't usually get changed
+
+#Put interface in promiscuous mode to score to traffic
+#that may not be routing through the host machine.
+
+promiscuous true
+
+#Libpcap format filter string used to control what bandwidthd see's
+#Please always include "ip" in the string to avoid strange problems
+#filter "ip"
+

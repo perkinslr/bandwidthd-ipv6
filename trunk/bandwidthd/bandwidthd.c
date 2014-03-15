@@ -619,7 +619,6 @@ void ParseBroadcast(const u_char *in)
 
 void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	{
-	printf("622\n");
 	unsigned int Counter;
 	unsigned short SkipSrc = 0;
 	unsigned short SkipDst = 0;
@@ -645,7 +644,7 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	if (ip->ip_v != 4) // then not an ip packet so skip it
 #endif
 #ifdef IPV6
-	printf("647: %i", ip->ip6_ctlun.ip6_un2_vfc>>4);
+	printf("647: %i\n", ip->ip6_ctlun.ip6_un2_vfc>>4);
 	if (ip->ip6_ctlun.ip6_un2_vfc>>4 != 6)
 #endif
 		return;

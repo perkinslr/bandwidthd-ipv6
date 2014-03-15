@@ -670,8 +670,20 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	dstip_array[2] = ntohl(ip->ip6_dst.s6_addr32[2]);
 	dstip_array[3] = ntohl(ip->ip6_dst.s6_addr32[3]);
 	
-	srcip = (uint128_t) srcip_array;
-	dstip = (uint128_t) dstip_array;
+	srcip = (uint128_t) srcip_array[0];
+	dstip = (uint128_t) dstip_array[0];
+	srcip*=4294967296;
+	dstip*=4294967296;
+	srcip = (uint128_t) srcip_array[1];
+	dstip = (uint128_t) dstip_array[1];
+	srcip*=4294967296;
+	dstip*=4294967296;
+	srcip = (uint128_t) srcip_array[2];
+	dstip = (uint128_t) dstip_array[2];
+	srcip*=4294967296;
+	dstip*=4294967296;
+	srcip = (uint128_t) srcip_array[3];
+	dstip = (uint128_t) dstip_array[3];
 #endif
 	printf("\n671: %s", uint128_to_str(srcip));
 	printf("672: %s", uint128_to_str(dstip));

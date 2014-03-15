@@ -300,7 +300,12 @@ int main(int argc, char **argv)
 	config.dev = NULL;
 	config.description = "No Description";
 	config.management_url = "https://127.0.0.1";
+#ifdef IPV4
 	config.filter = "ip or ether proto 1537";
+#endif
+#ifdef IPV6
+	config.filter = "ip6 or ether proto 1537";
+#endif
 	//config.filter = "ip";
 	config.skip_intervals = CONFIG_GRAPHINTERVALS;
 	config.graph_cutoff = CONFIG_GRAPHCUTOFF;

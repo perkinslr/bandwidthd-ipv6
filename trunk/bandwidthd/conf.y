@@ -42,7 +42,7 @@ int bdconfig_wrap()
     int number;
     char *string;
 }
-
+%token <string> IP6ADDR
 %token <string> IPADDR
 %token <number> NUMBER
 %token <string> STRING
@@ -178,7 +178,7 @@ subneta:
   ;
 
 subnetc:
-  TOKSUBNET STRING TOKSLASH NUMBER STRING TOKSLASH NUMBER
+  TOKSUBNET IP6ADDR IP6ADDR
   {
     #ifdef IPV6
     uint128_t result;

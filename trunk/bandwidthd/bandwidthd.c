@@ -737,6 +737,7 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 // counted multiple times
 void MonitorSubnet(IPINTTYPE ip, IPINTTYPE mask)
 	{
+	
 	IPINTTYPE subnet = ip & mask;
 	int Counter, Counter2;
 	struct in_addr addr, addr2;

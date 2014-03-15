@@ -668,6 +668,8 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	srcip = (uint128_t) *(char*) &srcip_array[0];
 	dstip = (uint128_t) *(char*) &dstip_array[0];
 #endif
+	printf("671: %s", uint128_to_str(srcip));
+	printf("672: %s", uint128_to_str(dstip));
 	for (Counter = 0; Counter < NotSubnetCount; Counter++)
 		{
 		if (NotSubnetTable[Counter].ip == (srcip & NotSubnetTable[Counter].mask))  //In the list of subnets we're ignoring.

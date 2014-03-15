@@ -181,14 +181,11 @@ subnetc:
   TOKSUBNET IP6ADDR IP6ADDR
   {
     #ifdef IPV6
-    uint128_t result;
-    uint128_t result2;
-    printf("\n186: %s\n", $2);
-    
-    inet_pton(AF_INET6, $2, &result);
-    inet_pton(AF_INET6, $3, &result2);
-    printf("190\n %s\n", uint128_to_str(result));
-    MonitorSubnet(result, result2);
+    struct in6_addr result;
+    struct in6_addr result2;
+    inet_pton(AF_INET6, ($2), &result);
+    inet_pton(AF_INET6, ($3), &result2);
+    MonitorSubnet(in6_addr_to_uint128(&result), in6_addr_to_uint128(&result2));
     #endif
   }
 

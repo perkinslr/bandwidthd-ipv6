@@ -663,9 +663,12 @@ void pgsqlStoreIPData(struct IPData *IPData, struct extensions *extension_data)
 			sql2 = "INSERT INTO bd_rx_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count, total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14);";
 			}
 		snprintf(Values[3], MAX_PARAM_SIZE, "%s", (char*) &IPData->mac[0]);
-
+#ifdef IPV4
 		HostIp2CharIp(IPData->ip, Values[4]);
-
+#endif
+#ifdef IPV6
+		uint128_to_ipv6str_unexpanded(IPData->ip, Values[4]);
+#endif
 		Stats = &(IPData->Send);
 		if (Stats->total > 512) // Don't log empty sets
 			{
@@ -679,7 +682,6 @@ void pgsqlStoreIPData(struct IPData *IPData, struct extensions *extension_data)
 			snprintf(Values[11], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->http)/1024.0) + 0.5));
 			snprintf(Values[12], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->mail)/1024.0) + 0.5));
 			snprintf(Values[13], MAX_PARAM_SIZE, "%llu", (long long unsigned int)((((double)Stats->p2p)/1024.0) + 0.5));
-
 			res = PQexecParams(conn, sql1,
 				14,       
 				NULL,    /* let the backend deduce param type */

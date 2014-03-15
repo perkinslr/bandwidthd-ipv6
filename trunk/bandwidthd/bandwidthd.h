@@ -94,7 +94,7 @@ typedef u_int16_t uint16_t;
 #define RANGE3 3024000.0	// 35 days
 #define RANGE4 35640000.0	// 412.5ish days 
 
-#define INTERVAL1 200L		// 150 -60 (213 is the perfect interval?)
+#define INTERVAL1 10L		// 150 -60 (213 is the perfect interval?)
 #define INTERVAL2 600L		// 10 minutes
 #define INTERVAL3 3600L		// 1 hour
 #define INTERVAL4 43200L	// 12 hours 
@@ -314,7 +314,9 @@ void initbandwidthd(void);
 
 void ipv6_to_str_unexpanded(const struct in6_addr * addr, char * str);
 
+void uint128_to_ipv6str_unexpanded(uint128_t addr, char * str);
 
+uint128_t in6_addr_to_uint128(const struct in6_addr * addr);
 
 
 void uint128_to_str_iter(uint128_t n, char *out,int firstiter);

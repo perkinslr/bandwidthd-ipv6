@@ -470,11 +470,12 @@ PGconn *pgsqlIncReboots(PGconn *conn, char *sensor_id)
 		}
 	}
 #endif
-
+#ifdef HAVE_LIBPQ
 static void pgsqllngjmp(int signal)
 	{
 	longjmp(pgsqljmp, 1);	
 	}
+#endif
 #ifndef LINKEDIPDATA
 void pgsqlStoreIPData(struct IPData IncData[], struct extensions *extension_data)
 #else

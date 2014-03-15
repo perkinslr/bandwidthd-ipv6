@@ -14,7 +14,7 @@
 [-0-9]+          { bdconfig_lval.number=atoi(yytext); return NUMBER; }
 \".*\"          { bdconfig_lval.string=strdup(yytext); return STRING; }
 \/            { return TOKSLASH; }
-(([0-9a-f]{0,4}:){1,7}[0-9a-f]{1,4}|([0-9]{1,3}){3}[0-9]{1,3}) { return IP6ADDR; }
+(([0-9a-f]{0,4}:){1,7}[0-9a-f]{1,4}|([0-9]{1,3}){3}[0-9]{1,3}) { bdconfig_lval.string=strdup(yytext); return IP6ADDR; }
 true|false              { bdconfig_lval.number=!strcmp(yytext,"true"); return STATE; }
 subnet          { return TOKSUBNET; }
 notsubnet         { return TOKNOTSUBNET; }

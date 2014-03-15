@@ -183,6 +183,8 @@ subnetc:
     #ifdef IPV6
     uint128_t result;
     uint128_t result2;
+    printf("%s", $2);
+    
     inet_pton(AF_INET6, $2, &result);
     inet_pton(AF_INET6, $3, &result2);
     MonitorSubnet(result, result2);

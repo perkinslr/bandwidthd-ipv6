@@ -356,9 +356,20 @@ int main(int argc, char **argv)
 	// Log list of monitored subnets
 	for (Counter = 0; Counter < SubnetCount; Counter++)
 		{
+#ifdef IPV4
 		addr.s_addr = ntohl(SubnetTable[Counter].ip);
 		addr2.s_addr = ntohl(SubnetTable[Counter].mask);
 		syslog(LOG_INFO, "Monitoring subnet %s with netmask %s", inet_ntoa(addr), inet_ntoa(addr2));
+#endif
+#ifdef IPV6
+		//addr.s_addr = ntohl(SubnetTable[Counter].ip);
+		//addr2.s_addr = ntohl(SubnetTable[Counter].mask);
+		char out[40];
+		char out2[40];
+		ipv6_to_str_unexpanded((struct in6_addr*) &SubnetTable[Counter].ip, (char*) &out);
+		ipv6_to_str_unexpanded((struct in6_addr*) &SubnetTable[Counter].mask, (char*) &out2);
+		syslog(LOG_INFO, "Monitoring subnet %s with netmask %s", out, out2);
+#endif
 		}
   for (Counter = 0; Counter < NotSubnetCount; Counter++)
     {

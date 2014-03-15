@@ -100,6 +100,8 @@ subnet:
   subneta
   |
   subnetb
+  |
+  subnetc
   ;
 
 newline:
@@ -163,16 +165,7 @@ subneta:
   TOKSUBNET IPADDR IPADDR
   {
   //struct in_addr addr, addr2;
-  #ifdef IPV4
   MonitorSubnet(inet_network($2), inet_network($3));
-  #endif
-  #ifdef IPV6
-  uint128_t result;
-  uint128_t result2;
-  inet_pton(AF_INET6, $2, &result);
-  inet_pton(AF_INET6, $3, &result2);
-  MonitorSubnet(result, result2);
-  #endif
   /*
   SubnetTable[SubnetCount].ip = inet_network($2) & inet_network($3);
       SubnetTable[SubnetCount].mask = inet_network($3);  
@@ -183,6 +176,18 @@ subneta:
   */
   }
   ;
+
+subnetc:
+  TOKSUBNET STRING STRING
+  {
+    #ifdef IPV6
+    uint128_t result;
+    uint128_t result2;
+    inet_pton(AF_INET6, $2, &result);
+    inet_pton(AF_INET6, $3, &result2);
+    MonitorSubnet(result, result2);
+    #endif
+  }
 
 subnetb:
   TOKSUBNET IPADDR TOKSLASH NUMBER

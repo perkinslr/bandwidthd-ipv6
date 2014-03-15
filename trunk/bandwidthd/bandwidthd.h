@@ -158,8 +158,8 @@ struct config
 
 struct SubnetData
 	{
-	IPINTTYPE ip;
-	IPINTTYPE mask;
+	uint128_t ip;
+	uint128_t mask;
 	} SubnetTable[SUBNET_NUM];
 
 struct Statistics

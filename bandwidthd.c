@@ -366,8 +366,8 @@ int main(int argc, char **argv)
 		//addr2.s_addr = ntohl(SubnetTable[Counter].mask);
 		char out[40];
 		char out2[40];
-		ipv6_to_str_unexpanded((struct in6_addr*) &SubnetTable[Counter].ip, (char*) &out);
-		ipv6_to_str_unexpanded((struct in6_addr*) &SubnetTable[Counter].mask, (char*) &out2);
+		uint128_to_ipv6str_unexpanded(SubnetTable[Counter].ip, (char*) &out);
+		uint128_to_ipv6str_unexpanded(SubnetTable[Counter].mask, (char*) &out2);
 		syslog(LOG_INFO, "Monitoring subnet %s with netmask %s", out, out2);
 #endif
 		}
@@ -644,7 +644,6 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	if (ip->ip_v != 4) // then not an ip packet so skip it
 #endif
 #ifdef IPV6
-	printf("647: %i\n", ip->ip6_ctlun.ip6_un2_vfc>>4);
 	if (ip->ip6_ctlun.ip6_un2_vfc>>4 != 6)
 #endif
 		return;
@@ -653,40 +652,9 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	dstip = ntohl(*(IPINTTYPE *) (&ip->ip_dst));
 #endif
 #ifdef IPV6
-	uint32_t srcip_array[4];
-	uint32_t dstip_array[4];
-	char out[40];
-	ipv6_to_str_unexpanded(&ip->ip6_src, &out);
-	printf("658: %s", out);
-	printf("671: %s", uint128_to_str(ntohl(ip->ip6_src.s6_addr32[0])));
-	printf("671: %s", uint128_to_str((ip->ip6_src.s6_addr32[0])));
-	srcip_array[0] = ntohl(ip->ip6_src.s6_addr32[0]);
-	srcip_array[1] = ntohl(ip->ip6_src.s6_addr32[1]);
-	srcip_array[2] = ntohl(ip->ip6_src.s6_addr32[2]);
-	srcip_array[3] = ntohl(ip->ip6_src.s6_addr32[3]);
-	
-	dstip_array[0] = ntohl(ip->ip6_dst.s6_addr32[0]);
-	dstip_array[1] = ntohl(ip->ip6_dst.s6_addr32[1]);
-	dstip_array[2] = ntohl(ip->ip6_dst.s6_addr32[2]);
-	dstip_array[3] = ntohl(ip->ip6_dst.s6_addr32[3]);
-	
-	srcip = (uint128_t) srcip_array[0];
-	dstip = (uint128_t) dstip_array[0];
-	srcip*=4294967296;
-	dstip*=4294967296;
-	srcip+= (uint128_t) srcip_array[1];
-	dstip+= (uint128_t) dstip_array[1];
-	srcip*=4294967296;
-	dstip*=4294967296;
-	srcip+= (uint128_t) srcip_array[2];
-	dstip+= (uint128_t) dstip_array[2];
-	srcip*=4294967296;
-	dstip*=4294967296;
-	srcip+= (uint128_t) srcip_array[3];
-	dstip+= (uint128_t) dstip_array[3];
+	srcip = in6_addr_to_uint128(&ip->ip6_src);
+	dstip = in6_addr_to_uint128(&ip->ip6_dst);
 #endif
-	printf("\n671: %s", uint128_to_str(srcip));
-	printf("672: %s", uint128_to_str(dstip));
 	for (Counter = 0; Counter < NotSubnetCount; Counter++)
 		{
 		if (NotSubnetTable[Counter].ip == (srcip & NotSubnetTable[Counter].mask))  //In the list of subnets we're ignoring.
@@ -704,11 +672,8 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		// credited to both ip's
 		// Totals are checked for first to speed up FindIp in the total case
 		// That way the 0 entry is always first in the FindIp table
-		printf("\n707a: %s", uint128_to_str(SubnetTable[Counter].mask));
-		printf("\n708: %i", (SubnetTable[Counter].mask));
-		if ((SubnetTable[Counter].ip == (srcip & SubnetTable[Counter].mask)))
+		if ((SubnetTable[Counter].ip == (srcip & SubnetTable[Counter].mask)) && !SkipSrc)
 			{
-			printf("709\n");
 			if (!AlreadyTotaled)
 				{
 				Credit(&(IpTable[0].Send), ip);
@@ -775,9 +740,7 @@ void MonitorSubnet(IPINTTYPE ip, IPINTTYPE mask)
 			}
 		}
 	SubnetTable[SubnetCount].mask = mask;
-	printf("\n777: \n%s\n%s\n",uint128_to_str(mask),uint128_to_str(SubnetTable[SubnetCount].mask));
 	SubnetTable[SubnetCount].ip = subnet;
-	printf("\n779: \n%s\n%s\n",uint128_to_str(subnet),uint128_to_str(SubnetTable[SubnetCount].ip));
 	SubnetCount++;
 	}
 
@@ -1365,6 +1328,24 @@ char* uint128_to_str(uint128_t n){
     return out;
 }
 
+uint128_t in6_addr_to_uint128(const struct in6_addr * addr){
+	uint128_t n=0;
+	int i;
+	for (i=0;i<16;i++){
+		n=n<<8|addr->s6_addr[i];
+	}
+	return n;
+}
+
+void uint128_to_ipv6str_unexpanded(uint128_t addr, char * str){
+	struct in6_addr in6addr;
+	int i;
+	for (i=15;i>-1;i--){
+		in6addr.s6_addr[i]=addr%256;
+		addr>>=8;
+	}
+	ipv6_to_str_unexpanded(&in6addr, str);
+}
 
 void ipv6_to_str_unexpanded(const struct in6_addr * addr, char * str) {
 	sprintf(str, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",

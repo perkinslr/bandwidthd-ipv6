@@ -774,7 +774,9 @@ void MonitorSubnet(IPINTTYPE ip, IPINTTYPE mask)
 			}
 		}
 	SubnetTable[SubnetCount].mask = mask;
+	printf("\n777: \n%s\n%s\n",uint128_to_str(mask),uint128_to_str(SubnetTable[SubnetCount].mask));
 	SubnetTable[SubnetCount].ip = subnet;
+	printf("\n779: \n%s\n%s\n",uint128_to_str(subnet),uint128_to_str(SubnetTable[SubnetCount].ip));
 	SubnetCount++;
 	}
 

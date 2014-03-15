@@ -387,6 +387,7 @@ void GraphIp(struct IPDataStore *DataStore, struct SummaryData *SummaryData, tim
 	FILE *OutputFile;
 	char filename[MAX_FILENAME];
 	gdImagePtr im, im2;
+	int white;
 	unsigned long long int YMax;
 	char CharIp[20];
 
@@ -402,9 +403,11 @@ void GraphIp(struct IPDataStore *DataStore, struct SummaryData *SummaryData, tim
 	GraphBeginTime = timestamp - config.range;
 
 	im = gdImageCreate(XWIDTH, YHEIGHT);
+	white = gdImageColorAllocate(im, 255, 255, 255);
 	//gdImageFill(im, 10, 10, white);
 
 	im2 = gdImageCreate(XWIDTH, YHEIGHT);
+	white = gdImageColorAllocate(im2, 255, 255, 255);
 	//gdImageFill(im2, 10, 10, white);
 
 	YMax = GraphData(im, im2, DataStore, GraphBeginTime, SummaryData);
@@ -486,7 +489,7 @@ unsigned long long int GraphData(gdImagePtr im, gdImagePtr im2, struct IPDataSto
 	char Buffer2[50];
 	
 	int blue, lblue, orange, red, yellow, purple, green, brown, black;
-	int blue2, lblue2, red2, yellow2, purple2, green2, brown2, black2;
+	int blue2, lblue2, orange2, red2, yellow2, purple2, green2, brown2, black2;
 
 	unsigned long long int SentPeak = 0;
 	unsigned long long int ReceivedPeak = 0;
@@ -506,6 +509,7 @@ unsigned long long int GraphData(gdImagePtr im, gdImagePtr im2, struct IPDataSto
 	green2	 = gdImageColorAllocate(im2, 0, 255, 0);
 	blue2	 = gdImageColorAllocate(im2, 0, 0, 255);
 	lblue2	 = gdImageColorAllocate(im2, 128, 128, 255);
+	orange2  = gdImageColorAllocate(im2, 255, 128, 0);
 	brown2	 = gdImageColorAllocate(im2, 128, 0, 0);
 	red2	 = gdImageColorAllocate(im2, 255, 0, 0);
 	black2	 = gdImageColorAllocate(im2, 0, 0, 0);
@@ -798,13 +802,14 @@ void PrepareXAxis(gdImagePtr im, time_t timestamp)
 	{
 	char buffer[100];
 	int black, red;
-	time_t sample_begin;	
+	time_t sample_begin, sample_end;	
 	struct tm *timestruct;
 	long int MarkTime;
 	long int MarkTimeStep;
 	double x;
 	
 	sample_begin=timestamp-config.range;
+	sample_end=sample_begin+config.interval;
 
 	black = gdImageColorAllocate(im, 0, 0, 0);
 	red   = gdImageColorAllocate(im, 255, 0, 0);

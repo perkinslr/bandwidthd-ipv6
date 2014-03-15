@@ -706,6 +706,7 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		// That way the 0 entry is always first in the FindIp table
 		if ((SubnetTable[Counter].ip == (srcip & SubnetTable[Counter].mask)) && !SkipSrc)
 			{
+			printf("709\n");
 			if (!AlreadyTotaled)
 				{
 				Credit(&(IpTable[0].Send), ip);

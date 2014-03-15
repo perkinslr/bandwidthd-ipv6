@@ -128,6 +128,8 @@ typedef uint32_t IPINTTYPE ;
 #ifdef IPV6
 typedef uint128_t IPINTTYPE ;
 #define ip ip6_hdr
+#else
+typedef uint32_t IPINTTYPE ;
 #endif
 
 struct config

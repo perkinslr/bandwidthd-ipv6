@@ -24,11 +24,10 @@
 #include <netinet/in.h>
 
 #include <netinet/in_systm.h>
-#ifdef IPV4
-#include <netinet/ip.h>
-#endif
 #ifdef IPV6
 #include <netinet/ip6.h>
+#else
+#include <netinet/ip.h>
 #endif
 #include <netinet/udp.h>
 #include <netinet/tcp.h>

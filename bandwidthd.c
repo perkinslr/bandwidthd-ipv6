@@ -648,8 +648,8 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	dstip_array[2] = ntohl(ip->ip6_dst.s6_addr32[2]);
 	dstip_array[3] = ntohl(ip->ip6_dst.s6_addr32[3]);
 	
-	srcip = srcip_array;
-	dstip = dstip_array;
+	srcip = *(IPINTTYPE*) &srcip_array[0];
+	dstip = *(IPINTTYPE*) &dstip_array[0];
 #endif
 	for (Counter = 0; Counter < NotSubnetCount; Counter++)
 		{

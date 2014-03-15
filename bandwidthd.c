@@ -644,6 +644,7 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	if (ip->ip_v != 4) // then not an ip packet so skip it
 #endif
 #ifdef IPV6
+	printf("647: %i", ip->ip6_ctlun.ip6_un2_vfc);
 	if (ip->ip6_ctlun.ip6_un2_vfc != 6)
 #endif
 		return;

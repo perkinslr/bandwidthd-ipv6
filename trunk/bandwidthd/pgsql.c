@@ -487,8 +487,9 @@ void pgsqlStoreIPData(struct IPData *IPData, struct extensions *extension_data)
 	static pid_t child = 0;
 #ifndef LINKEDIPDATA
 	struct IPData *IPData;
-#endif
 	unsigned int Counter;
+#endif
+
 	struct Statistics *Stats;
 	PGresult   *res;
 	PGconn *conn = NULL;

@@ -245,8 +245,8 @@ void sqliteStoreIPData(struct IPData *IPData, struct extensions *extension_data)
 	static pid_t child = 0;
 #ifndef LINKEDIPDATA
 	struct IPData *IPData;
-#endif
 	unsigned int Counter;
+#endif
 	struct Statistics *Stats;
 
 	// SQLite variables
@@ -430,8 +430,8 @@ void sqliteStoreIPData(struct IPData *IPData, struct extensions *extension_data)
 			{
 			sqlTXInsert = sqlStandardTXInsert;
 			sqlRXInsert = sqlStandardRXInsert;
-			sqlite3_bind_text(sqlTXInsert, 4, IPData->mac, -1, SQLITE_STATIC);
-			sqlite3_bind_text(sqlRXInsert, 4, IPData->mac, -1, SQLITE_STATIC);
+			sqlite3_bind_text(sqlTXInsert, 4, (char* )&IPData->mac, -1, SQLITE_STATIC);
+			sqlite3_bind_text(sqlRXInsert, 4, (char* )&IPData->mac, -1, SQLITE_STATIC);
 			i=1;
 			}
 		sqlite3_bind_int(sqlTXInsert, 4+i, IPData->ip);

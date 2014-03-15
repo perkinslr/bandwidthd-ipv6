@@ -187,6 +187,7 @@ subnetc:
     
     inet_pton(AF_INET6, $2, &result);
     inet_pton(AF_INET6, $3, &result2);
+    printf("190\n %s\n", uint128_to_str(result));
     MonitorSubnet(result, result2);
     #endif
   }

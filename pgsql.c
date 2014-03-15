@@ -662,7 +662,7 @@ void pgsqlStoreIPData(struct IPData *IPData, struct extensions *extension_data)
 			sql1 = "INSERT INTO bd_tx_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count, total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14);";
 			sql2 = "INSERT INTO bd_rx_log (sensor_id, timestamp, sample_duration, mac, ip, packet_count, total, icmp, udp, tcp, ftp, http, mail, p2p) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14);";
 			}
-		snprintf(Values[3], MAX_PARAM_SIZE, "%s", &IPData->mac[0]);
+		snprintf(Values[3], MAX_PARAM_SIZE, "%s", (char*) &IPData->mac[0]);
 
 		HostIp2CharIp(IPData->ip, Values[4]);
 

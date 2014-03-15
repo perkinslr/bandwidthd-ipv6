@@ -619,6 +619,7 @@ void ParseBroadcast(const u_char *in)
 
 void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	{
+	printf("622\n");
 	unsigned int Counter;
 	unsigned short SkipSrc = 0;
 	unsigned short SkipDst = 0;

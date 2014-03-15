@@ -14,6 +14,7 @@
 [-0-9]+          { bdconfig_lval.number=atoi(yytext); return NUMBER; }
 \".*\"          { bdconfig_lval.string=strdup(yytext); return STRING; }
 \/            { return TOKSLASH; }
+[ \t]*({xpart}(":"{IPV4ADDRESS})?)[ \t]* { return IP6ADDR; }
 true|false              { bdconfig_lval.number=!strcmp(yytext,"true"); return STATE; }
 subnet          { return TOKSUBNET; }
 notsubnet         { return TOKNOTSUBNET; }

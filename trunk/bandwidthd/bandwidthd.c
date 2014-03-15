@@ -656,7 +656,7 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	uint32_t srcip_array[4];
 	uint32_t dstip_array[4];
 	char out[40];
-	ipv6_to_str_unexpanded(ip->ip6_src, &out);
+	ipv6_to_str_unexpanded(&ip->ip6_src, &out);
 	printf("658: %s", out);
 	srcip_array[0] = ntohl(ip->ip6_src.s6_addr32[0]);
 	srcip_array[1] = ntohl(ip->ip6_src.s6_addr32[1]);

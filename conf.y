@@ -178,13 +178,13 @@ subneta:
   ;
 
 subnetc:
-  TOKSUBNET STRING STRING
+  TOKSUBNET STRING TOKSLASH NUMBER STRING TOKSLASH NUMBER
   {
     #ifdef IPV6
     uint128_t result;
     uint128_t result2;
     inet_pton(AF_INET6, $2, &result);
-    inet_pton(AF_INET6, $3, &result2);
+    inet_pton(AF_INET6, $5, &result2);
     MonitorSubnet(result, result2);
     #endif
   }

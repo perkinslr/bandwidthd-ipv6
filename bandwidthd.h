@@ -1,13 +1,11 @@
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #ifndef HAVE_PYTHON
 #undef LINKEDIPDATA
 #endif
 
 #ifdef HAVE_PYTHON
-#include <Python.h>
+#include <python2.7/Python.h>
 #endif
 
 #include <unistd.h>
@@ -26,7 +24,12 @@
 #include <netinet/in.h>
 
 #include <netinet/in_systm.h>
+#ifdef IPV4
 #include <netinet/ip.h>
+#endif
+#ifdef IPV6
+#include <netinet/ip6.h>
+#endif
 #include <netinet/udp.h>
 #include <netinet/tcp.h>
 
@@ -47,6 +50,8 @@
 #ifdef TYPEDEF_UINT32
 typedef u_int32_t uint32_t;
 #endif
+
+typedef __uint128_t uint128_t ;
 
 #ifdef TYPEDEF_UINT16
 typedef u_int16_t uint16_t;
@@ -118,6 +123,15 @@ typedef u_int16_t uint16_t;
 
 #define malloc0(size_t) calloc(size_t)
 
+#ifdef IPV4
+typedef uint32_t IPINTTYPE ;
+
+#endif
+#ifdef IPV6
+typedef uint128_t IPINTTYPE ;
+#define ip ip6_hdr
+#endif
+
 struct config
 	{
 	char *dev;
@@ -144,8 +158,8 @@ struct config
 
 struct SubnetData
 	{
-	uint32_t ip;
-	uint32_t mask;
+	IPINTTYPE ip;
+	IPINTTYPE mask;
 	} SubnetTable[SUBNET_NUM];
 
 struct Statistics
@@ -167,7 +181,7 @@ struct IPData
 	{
 	time_t timestamp;
 	char *mac[1][20];
-	uint32_t ip;	// Host byte order
+	IPINTTYPE ip;	// Host byte order
 	struct Statistics Send;
 	struct Statistics Receive;
 #ifdef LINKEDIPDATA
@@ -179,7 +193,7 @@ struct IPData
 #endif
 struct SummaryData
 	{
-	uint32_t IP;
+	IPINTTYPE IP;
 	int Graph;	// TRUE or FALSE, Did we write out a graph for this ip
 	unsigned long long Total;
 	unsigned long long TotalSent;
@@ -195,7 +209,7 @@ struct SummaryData
 
 struct IPDataStore
 	{
-	uint32_t ip;
+	IPINTTYPE ip;
 	struct DataStoreBlock *FirstBlock;	// This is structure is allocated at the same time, so it always exists.
 	struct IPDataStore *Next;
 	};
@@ -248,11 +262,11 @@ void			PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p
 void RecoverDataFromCDF(void);
 
 // ************ Adds subnets to the list of subnets that are monitored
-void MonitorSubnet(unsigned int ip, unsigned int mask);
+void MonitorSubnet(IPINTTYPE ip, IPINTTYPE mask);
 
 
 // ************ This function converts and IP to a char string
-char inline 	*HostIp2CharIp(unsigned long ipaddr, char *buffer);
+char inline 	*HostIp2CharIp(IPINTTYPE ipaddr, char *buffer);
 
 // ************ This function converts the numbers for each quad into an IP
 inline uint32_t IpAddr(unsigned char q1, unsigned char q2, unsigned char q3, unsigned char q4);
@@ -261,7 +275,7 @@ inline uint32_t IpAddr(unsigned char q1, unsigned char q2, unsigned char q3, uns
 inline void		Credit(struct Statistics *Stats, const struct ip *ip);
 
 // ************ Finds an IP in our IPTable
-inline struct IPData *FindIp(uint32_t ipaddr);
+inline struct IPData *FindIp(IPINTTYPE ipaddr);
 
 // ************ Writes our IPTable to Disk or to the Ram cache
 void			CommitData(time_t timestamp);
@@ -274,7 +288,7 @@ unsigned long long GraphData(gdImagePtr im, gdImagePtr im2, struct IPDataStore *
 
 
 // ************ Misc
-inline void		DstCredit(uint32_t ipaddr, unsigned int psize);
+inline void		DstCredit(IPINTTYPE ipaddr, unsigned int psize);
 void			MakeIndexPages(int NumGraphs, struct SummaryData *SummaryData[]);
 
 // ************ Pgsql
@@ -298,36 +312,13 @@ void initbandwidthd(void);
 
 #define SNAPLEN 100
 
-/*
-static pcap_t *pd;
-unsigned int GraphIntervalCount = 0;
-unsigned int IpCount = 0;
-unsigned int SubnetCount = 0;
-unsigned int NotSubnetCount = 0;
-int IntervalFinished = FALSE;
-time_t IntervalStart;
-time_t ProgramStart;
-int RotateLogs = FALSE;
-int PacketCallbackLock = 0;
-pid_t pidGraphingChild = 0;
-struct SubnetData SubnetTable[SUBNET_NUM];
-struct SubnetData NotSubnetTable[SUBNET_NUM];
-struct IPData IpTable[IP_NUM];
-size_t ICGrandTotalDataPoints = 0;
+void ipv6_to_str_unexpanded(const struct in6_addr * addr, char * str);
 
-#ifdef HAVE_PYTHON
-PyObject *IpTableDict;
-#endif
 
-int DataLink;
-int IP_Offset;
-struct IPDataStore *IPDataStore = NULL;
-extern int bdconfig_parse(void);
-void BroadcastState(int fd);
-extern FILE *bdconfig_in;
-struct config config;
-struct Broadcast *Broadcasts = NULL;
-pid_t workerchildpids[NR_WORKER_CHILDS];
-void ResetTrafficCounters(void);
-void CloseInterval(void);
-*/
+
+
+void uint128_to_str_iter(uint128_t n, char *out,int firstiter);
+
+char* uint128_to_str(uint128_t n);
+
+void IgnoreMonitorSubnet(IPINTTYPE ip, IPINTTYPE mask);

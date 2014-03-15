@@ -115,6 +115,8 @@ void bd_CollectingData()
 		}
 	}
 
+
+
 pid_t WriteOutWebpages(long int timestamp)
 {
 	struct IPDataStore *DataStore = IPDataStore;
@@ -138,7 +140,8 @@ pid_t WriteOutWebpages(long int timestamp)
 			monstartup((u_long) &_start, (u_long) &etext);
 #endif
 			signal(SIGHUP, SIG_IGN);
-			nice(4); // reduce priority so I don't choke out other tasks
+			int ret=nice(4); // reduce priority so I don't choke out other tasks
+			ret++;
 			// Count Number of IP's in datastore
 			for (DataStore = IPDataStore, Counter = 0; DataStore; Counter++, DataStore = DataStore->Next);
 			// +1 because we don't want to accidently allocate 0
@@ -482,7 +485,8 @@ int main(int argc, char **argv)
 	// This is also set in CloseInterval because it gets overwritten in some commit modules
 	signal(SIGALRM, handle_interval);
 	alarm(config.interval);
-	nice(1);
+	int ret=nice(1);
+	ret++;
 	while (1)
 		{
 		// Bookeeping
@@ -606,13 +610,13 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	struct ether_header *eptr;
 	struct VlanHeader *vlanhdr;
 	const struct ip *ip;
-	uint32_t srcip;
-	uint32_t dstip;
+	IPINTTYPE srcip;
+	IPINTTYPE dstip;
 	struct IPData *ptrIPData;
 	int AlreadyTotaled = FALSE;
 	PacketCallbackLock = TRUE;
 	eptr = (struct ether_header *) p;
-	vlanhdr = (struct vlanhdr *) p;
+	vlanhdr = (struct VlanHeader*) p;
 	if (eptr->ether_type == htons(1537))
 		ParseBroadcast(p);
 	if (vlanhdr->ether_type[0]==0x81 && vlanhdr->ether_type[1]==0x00) //Two byte-wise checks instead of 1 word-wise check to avoid word boundary issues on some intel processors
@@ -620,10 +624,33 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	caplen -= IP_Offset;  // We're only measuring ip size, so pull off the ethernet header
 	p += IP_Offset; // Move the pointer past the datalink header
 	ip = (const struct ip *)p; // Point ip at the ip header
+#ifdef IPV4
 	if (ip->ip_v != 4) // then not an ip packet so skip it
+#endif
+#ifdef IPV6
+	if (ip->ip6_ctlun.ip6_un2_vfc != 6)
+#endif
 		return;
-	srcip = ntohl(*(uint32_t *) (&ip->ip_src));
-	dstip = ntohl(*(uint32_t *) (&ip->ip_dst));
+#ifdef IPV4
+	srcip = ntohl(*(IPINTTYPE *) (&ip->ip_src));
+	dstip = ntohl(*(IPINTTYPE *) (&ip->ip_dst));
+#endif
+#ifdef IPV6
+	uint32_t srcip_array[4];
+	uint32_t dstip_array[4];
+	srcip_array[0] = ntohl(ip->ip6_src.s6_addr32[0]);
+	srcip_array[1] = ntohl(ip->ip6_src.s6_addr32[1]);
+	srcip_array[2] = ntohl(ip->ip6_src.s6_addr32[2]);
+	srcip_array[3] = ntohl(ip->ip6_src.s6_addr32[3]);
+	
+	dstip_array[0] = ntohl(ip->ip6_dst.s6_addr32[0]);
+	dstip_array[1] = ntohl(ip->ip6_dst.s6_addr32[1]);
+	dstip_array[2] = ntohl(ip->ip6_dst.s6_addr32[2]);
+	dstip_array[3] = ntohl(ip->ip6_dst.s6_addr32[3]);
+	
+	srcip = srcip_array;
+	dstip = dstip_array;
+#endif
 	for (Counter = 0; Counter < NotSubnetCount; Counter++)
 		{
 		if (NotSubnetTable[Counter].ip == (srcip & NotSubnetTable[Counter].mask))  //In the list of subnets we're ignoring.
@@ -669,9 +696,9 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 // Eliminates duplicate entries and fully included subnets so packets don't get
 // counted multiple times
-void MonitorSubnet(unsigned int ip, unsigned int mask)
+void MonitorSubnet(IPINTTYPE ip, IPINTTYPE mask)
 	{
-	unsigned int subnet = ip & mask;
+	IPINTTYPE subnet = ip & mask;
 	int Counter, Counter2;
 	struct in_addr addr, addr2;
 	addr.s_addr = ntohl(subnet);
@@ -712,9 +739,9 @@ void MonitorSubnet(unsigned int ip, unsigned int mask)
 	SubnetCount++;
 	}
 
-void IgnoreMonitorSubnet(unsigned int ip, unsigned int mask)
+void IgnoreMonitorSubnet(IPINTTYPE ip, IPINTTYPE mask)
   {
-  unsigned int subnet = ip & mask;
+  IPINTTYPE subnet = ip & mask;
   int Counter, Counter2;
   struct in_addr addr, addr2;
   addr.s_addr = ntohl(subnet);
@@ -761,14 +788,23 @@ inline void Credit(struct Statistics *Stats, const struct ip *ip)
 	const struct tcphdr *tcp;
 	uint16_t port;
 	int Counter;
+#ifdef IPV4
 	size = ntohs(ip->ip_len);
+#endif
+#ifdef IPV6
+	size = ntohs(ip->ip6_ctlun.ip6_un1.ip6_un1_plen);
+#endif
 	Stats->total += size;
 	Stats->packet_count++;
+#ifdef IPV4
 	switch(ip->ip_p)
+#endif
+#ifdef IPV6
+	switch(ip->ip6_ctlun.ip6_un1.ip6_un1_nxt)
+#endif
 		{
 		case 6:		// TCP
-			tcp = (struct tcphdr *)(ip+1);
-			tcp = (struct tcphdr *) ( ((char *)tcp) + ((ip->ip_hl-5)*4) ); // Compensate for IP Options
+			tcp = (struct tcphdr *)(ip+sizeof(struct ip));
 			Stats->tcp += size;
 			// This is a wierd way to do this, I know, but the old "if/then" structure burned alot more CPU
 			for (port = ntohs(tcp->TCPHDR_DPORT), Counter=2 ; Counter ; port = ntohs(tcp->TCPHDR_SPORT), Counter--)
@@ -878,7 +914,6 @@ void StoreIPDataInDatabase(struct IPData IncData[], struct extensions *extension
 void StoreIPDataInCDF(struct IPData IncData[])
 	{
 	struct IPData *IPData;
-	unsigned int Counter;
 	FILE *cdf;
 	struct Statistics *Stats;
 	char IPBuffer[50];
@@ -890,6 +925,7 @@ void StoreIPDataInCDF(struct IPData IncData[])
 	while (IPData)
 		{
 #else
+	unsigned int Counter;
 	for (Counter=0; Counter < IpCount; Counter++)
 		{
 		IPData = &IncData[Counter];
@@ -1220,7 +1256,7 @@ void RecoverDataFromCDF(void)
 // ****** FindIp **********
 // ****** Returns or allocates an Ip's data structure
 
-inline struct IPData *FindIp(uint32_t ipaddr)
+inline struct IPData *FindIp(IPINTTYPE ipaddr)
 	{
 	unsigned int Counter;
 	static time_t last_error = 0;
@@ -1231,7 +1267,7 @@ inline struct IPData *FindIp(uint32_t ipaddr)
 #else
 	PyObject *oIP;
 	PyObject *oCounter;
-	oIP=PyInt_FromLong(ipaddr);
+	oIP=PyInt_FromString(uint128_to_str(ipaddr), NULL, 10);
 	Counter=PyDict_Contains(IpTableDict, oIP);
 	if (Counter==-1){
 		printf("PyDict_Contains had an error.\n");
@@ -1268,8 +1304,41 @@ inline struct IPData *FindIp(uint32_t ipaddr)
 #endif
 	}
 
-char inline *HostIp2CharIp(unsigned long ipaddr, char *buffer)
+
+void uint128_to_str_iter(uint128_t n, char *out,int firstiter){
+	static int offset=0;
+	if (firstiter){
+		offset=0;
+	}
+	if (n == 0) {
+	  return;
+	}
+	uint128_to_str_iter(n/10,out,0);
+	out[offset++]=n%10+0x30;
+}
+
+char* uint128_to_str(uint128_t n){
+    char *out=calloc(sizeof(char),40);
+    uint128_to_str_iter(n, out, 1);
+    return out;
+}
+
+
+void ipv6_to_str_unexpanded(const struct in6_addr * addr, char * str) {
+	sprintf(str, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+		(int)addr->s6_addr[0], (int)addr->s6_addr[1],
+		(int)addr->s6_addr[2], (int)addr->s6_addr[3],
+		(int)addr->s6_addr[4], (int)addr->s6_addr[5],
+		(int)addr->s6_addr[6], (int)addr->s6_addr[7],
+		(int)addr->s6_addr[8], (int)addr->s6_addr[9],
+		(int)addr->s6_addr[10], (int)addr->s6_addr[11],
+		(int)addr->s6_addr[12], (int)addr->s6_addr[13],
+		(int)addr->s6_addr[14], (int)addr->s6_addr[15]); 
+}
+
+char inline *HostIp2CharIp(IPINTTYPE ipaddr, char *buffer)
 	{
+#ifdef IPV4
 	struct in_addr in_addr;
 	char *s;
 	in_addr.s_addr = htonl(ipaddr);	
@@ -1277,10 +1346,14 @@ char inline *HostIp2CharIp(unsigned long ipaddr, char *buffer)
 	strncpy(buffer, s, 16);
 	buffer[15] = '\0';
 	return(buffer);
-/*	uint32_t ip = *(uint32_t *)ipaddr;
-	sprintf(buffer, "%d.%d.%d.%d", (ip << 24)  >> 24, (ip << 16) >> 24, (ip << 8) >> 24, (ip << 0) >> 24);
-*/
-	}
+#endif
+#ifdef IPV6
+	struct in6_addr *ip6addr = (struct in6_addr*)&ipaddr;
+	char *s = calloc(sizeof(char), 40);
+	ipv6_to_str_unexpanded(ip6addr, s);
+	return s;
+#endif
+}
 
 
 // Add better error checking
@@ -1424,7 +1497,7 @@ static PyObject *bandwidthd_set_entry_by_dict(PyObject *self, PyObject* args)
     return NULL;
   iPtr=PyInt_AsLong(PyDict_GetItem(IpTableDict, oIP));
   ip_entry = ((struct IPData *) iPtr);
-  strncpy(ip_entry->mac[0], mac, 17);
+  strncpy((char*) &ip_entry->mac[0], mac, 17);
   ip_entry->mac[0][17]='\0';
   return Py_BuildValue("s", ip_entry->mac[0]);
 #endif

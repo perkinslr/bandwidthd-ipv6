@@ -5,6 +5,11 @@
 #undef LINKEDIPDATA
 #endif
 
+#ifndef IPV6
+#define IPV4 yes
+#endif
+
+
 #ifdef HAVE_PYTHON
 #include <python2.7/Python.h>
 #endif
@@ -94,7 +99,7 @@ typedef u_int16_t uint16_t;
 #define RANGE3 3024000.0	// 35 days
 #define RANGE4 35640000.0	// 412.5ish days 
 
-#define INTERVAL1 10L		// 150 -60 (213 is the perfect interval?)
+#define INTERVAL1 200L		// 150 -60 (213 is the perfect interval?)
 #define INTERVAL2 600L		// 10 minutes
 #define INTERVAL3 3600L		// 1 hour
 #define INTERVAL4 43200L	// 12 hours 

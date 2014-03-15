@@ -704,7 +704,7 @@ void PacketCallback(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		// credited to both ip's
 		// Totals are checked for first to speed up FindIp in the total case
 		// That way the 0 entry is always first in the FindIp table
-		printf("\n707: %s", uint128_to_str(SubnetTable[Counter].ip));
+		printf("\n707: %i", sizeof(IPINTTYPE));
 		if ((SubnetTable[Counter].ip == (srcip & SubnetTable[Counter].mask)))
 			{
 			printf("709\n");

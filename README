@@ -1,3 +1,13 @@
+## Archive Project
+This project hasn't been worked on in over a decade, and no longer easily compiles.
+You can make it work if you disable a bunch of UB checking in the linker, but the 
+added features like mac/user lookup require CPython 2.x, which went EoL 5 years ago.
+If you need the functionality from this project, I've reimplemented it cleanly for 
+modern systems. You can find the updated version at [bandwidthd-ng](https://github.com/lp-programming/bandwidthd-ng).
+There are likely a few missing features from use cases that I never had. If you need
+any of the original functionality that I missed, open a ticket there and I will add it.
+
+
 Copyright Logan Perkins 2012 <perkins@alestan.publicvm.com>
 
 Parts copyright David Hinkle.
